@@ -165,8 +165,10 @@ def index():
     months = result["months"]  # sorted descending (newest first)
     all_data = result["data"]
 
-    # Default to latest month, or use query param
-    selected_month = request.args.get("month", months[0] if months else "")
+    # Default to latest month, or use query param, or current month
+    from datetime import datetime as _dt
+    fallback = _dt.now().strftime("%Y-%m")
+    selected_month = request.args.get("month", months[0] if months else fallback)
 
     # Get data for selected month
     month_data = all_data.get(selected_month, {})
@@ -179,8 +181,10 @@ def index():
         month_labels.append({"key": mk, "label": label})
 
     # Monthly sale total for dashboard
-    parts = selected_month.split("-")
-    sale_total = get_monthly_sale_total(DATA_DIR, int(parts[0]), int(parts[1]))
+    sale_total = 0
+    if selected_month and "-" in selected_month:
+        parts = selected_month.split("-")
+        sale_total = get_monthly_sale_total(DATA_DIR, int(parts[0]), int(parts[1]))
 
     return render_template(
         "index.html",
@@ -197,12 +201,16 @@ def api_all_data():
     """JSON API: data for a specific month (or latest)."""
     result = get_all_data()
     months = result["months"]
-    selected = request.args.get("month", months[0] if months else "")
+    from datetime import datetime as _dt
+    fallback = _dt.now().strftime("%Y-%m")
+    selected = request.args.get("month", months[0] if months else fallback)
     month_data = result["data"].get(selected, {})
 
     # Monthly sale total
-    parts = selected.split("-")
-    sale_total = get_monthly_sale_total(DATA_DIR, int(parts[0]), int(parts[1]))
+    sale_total = 0
+    if selected and "-" in selected:
+        parts = selected.split("-")
+        sale_total = get_monthly_sale_total(DATA_DIR, int(parts[0]), int(parts[1]))
 
     return jsonify({
         "months": [
@@ -279,7 +287,9 @@ def report_page():
     """Daily report page with 31 day buttons."""
     result = get_all_data()
     months = result["months"]
-    selected_month = request.args.get("month", months[0] if months else "")
+    from datetime import datetime as _dt
+    fallback = _dt.now().strftime("%Y-%m")
+    selected_month = request.args.get("month", months[0] if months else fallback)
     month_data = result["data"].get(selected_month, {})
 
     # Build month labels
