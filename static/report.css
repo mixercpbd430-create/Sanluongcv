@@ -163,7 +163,7 @@
     color: #6ee7b7;
 }
 
-/* --- Report Table --- */
+/* --- Report Table (Light Theme) --- */
 .report-table-wrapper {
     overflow-x: auto;
 }
@@ -172,8 +172,8 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
-    border: 2px solid rgba(148, 163, 184, 0.25);
-    border-radius: 8px;
+    border: 3px solid #333;
+    background: #ffffff;
 }
 
 .report-table th {
@@ -183,14 +183,9 @@
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-muted);
-    border-bottom: 2px solid rgba(148, 163, 184, 0.3);
-    border-right: 1px solid rgba(148, 163, 184, 0.15);
-    background: rgba(99, 102, 241, 0.06);
-}
-
-.report-table th:last-child {
-    border-right: none;
+    color: #1a1a1a;
+    background: #e8e8e8;
+    border: 2px solid #555;
 }
 
 .report-table th.col-a {
@@ -200,115 +195,117 @@
 
 .report-table td {
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-    border-right: 1px solid rgba(148, 163, 184, 0.1);
+    border: 1.5px solid #999;
     text-align: center;
-    transition: var(--transition-fast);
-}
-
-.report-table td:last-child {
-    border-right: none;
+    color: #1a1a1a;
+    font-weight: 500;
 }
 
 .report-table .label-cell {
     text-align: left;
-    font-weight: 600;
-    color: var(--text-secondary);
+    font-weight: 700;
+    color: #1a1a1a;
     white-space: nowrap;
-    border-right: 1px solid rgba(148, 163, 184, 0.15);
+    border-right: 2px solid #555;
+    background: #f5f5f5;
 }
 
 .report-table .label-cell.indent {
     padding-left: 40px;
-    font-weight: 500;
-    color: var(--text-muted);
+    font-weight: 600;
+    color: #333;
 }
 
 .report-table .label-cell.highlight-mixer {
-    color: var(--accent-amber);
-    font-weight: 700;
+    color: #b45309;
+    font-weight: 800;
     font-size: 1rem;
+    background: #fef3c7;
 }
 
 .report-table .label-cell.highlight-pellet {
-    color: var(--accent-cyan);
-    font-weight: 700;
+    color: #0369a1;
+    font-weight: 800;
     font-size: 1rem;
+    background: #e0f2fe;
 }
 
 .report-table .label-cell.highlight-stock {
-    color: var(--accent-rose);
-    font-weight: 700;
+    color: #be123c;
+    font-weight: 800;
     font-size: 1rem;
+    background: #ffe4e6;
 }
 
 .report-table .value-cell {
     font-variant-numeric: tabular-nums;
-    font-weight: 500;
-    color: var(--text-primary);
+    font-weight: 600;
+    color: #1a1a1a;
 }
 
 .report-table .total-cell {
-    font-weight: 700;
-    color: var(--accent-cyan);
+    font-weight: 800;
+    color: #059669;
+    font-size: 1.05rem;
 }
 
 .report-table .target-cell {
-    font-weight: 600;
-    color: var(--accent-amber);
-    opacity: 0.7;
+    font-weight: 700;
+    color: #7c3aed;
 }
 
 .report-table .day-display {
     text-align: center;
     font-size: 1.4rem;
     font-weight: 800;
-    color: var(--accent-indigo);
+    color: #4338ca;
     letter-spacing: 0.02em;
 }
 
 /* Row highlights */
 .row-ngay td {
-    background: rgba(99, 102, 241, 0.05);
-    border-bottom: 2px solid rgba(99, 102, 241, 0.4);
+    background: #eef2ff;
+    border-bottom: 3px solid #4338ca;
 }
 
 .row-mixer td {
-    background: rgba(245, 158, 11, 0.05);
-    border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+    background: #fffbeb;
+    border-bottom: 2px solid #d97706;
 }
 
 .row-cambot td {
-    background: rgba(255, 255, 255, 0.02);
-    border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+    background: #f9fafb;
+    border-bottom: 2px solid #9ca3af;
 }
 
 .row-total-pellet td {
-    background: rgba(6, 182, 212, 0.05);
-    border-bottom: 2px solid rgba(6, 182, 212, 0.25);
+    background: #ecfeff;
+    border-bottom: 2px solid #0891b2;
 }
 
 /* Pellet 2 — sky blue */
 .row-pl2 td {
-    background: rgba(56, 189, 248, 0.10);
+    background: #e0f2fe;
 }
 
 /* Pellet 4 — lime yellow */
 .row-pl4 td {
-    background: rgba(190, 242, 100, 0.10);
+    background: #fef9c3;
 }
 
 /* Pellet 6 — moss green */
 .row-pl6 td {
-    background: rgba(74, 222, 128, 0.10);
+    background: #dcfce7;
 }
 
 .row-sale td {
-    border-top: 2px solid rgba(148, 163, 184, 0.2);
+    background: #f9fafb;
+    border-top: 3px solid #555;
 }
 
 .row-stock td {
-    background: rgba(244, 63, 94, 0.04);
+    background: #ffe4e6;
+    border-top: 2px solid #e11d48;
 }
 
 /* Editable cells */
@@ -316,10 +313,10 @@
     width: 100%;
     max-width: 200px;
     padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
+    background: #fff;
+    border: 2px solid #999;
+    border-radius: 4px;
+    color: #1a1a1a;
     font-family: inherit;
     font-size: 0.9rem;
     font-weight: 600;
@@ -329,13 +326,13 @@
 }
 
 .editable-cell input:focus {
-    border-color: var(--accent-indigo);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: #4338ca;
+    box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.2);
+    background: #fefefe;
 }
 
 .editable-cell input::placeholder {
-    color: var(--text-muted);
+    color: #9ca3af;
     font-weight: 400;
 }
 
