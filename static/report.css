@@ -1,0 +1,398 @@
+/* ============================================
+   REPORT PAGE - Daily Report Styles
+   ============================================ */
+
+/* --- Day Buttons --- */
+.day-buttons-section {
+    margin-bottom: 24px;
+}
+
+.day-buttons-card {
+    padding: 24px;
+}
+
+.day-buttons-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.day-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px;
+}
+
+.day-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 52px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.day-btn:hover {
+    background: var(--glass-hover);
+    border-color: var(--accent-indigo);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow-indigo);
+}
+
+.day-btn.active {
+    background: var(--gradient-primary);
+    border-color: var(--accent-indigo);
+    color: white;
+    box-shadow: var(--shadow-glow-indigo);
+    transform: scale(1.05);
+}
+
+.day-btn.has-data {
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.day-btn.has-data::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent-emerald);
+}
+
+.day-btn {
+    position: relative;
+}
+
+/* --- Back Link --- */
+.back-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.back-link:hover {
+    background: var(--glass-hover);
+    color: var(--text-primary);
+    border-color: var(--accent-indigo);
+}
+
+/* --- Report Card --- */
+.report-section {
+    margin-bottom: 32px;
+}
+
+.report-card {
+    padding: 24px;
+    overflow: hidden;
+}
+
+.report-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.report-header-bar h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: 0.03em;
+}
+
+.btn-capture {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: var(--radius-md);
+    color: #e2e8f0;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-capture:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(139, 92, 246, 0.35));
+    color: white;
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+}
+
+.btn-capture:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.btn-capture.capture-success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25));
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #6ee7b7;
+}
+
+/* --- Report Table --- */
+.report-table-wrapper {
+    overflow-x: auto;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    border: 2px solid rgba(148, 163, 184, 0.25);
+    border-radius: 8px;
+}
+
+.report-table th {
+    text-align: center;
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 2px solid rgba(148, 163, 184, 0.3);
+    border-right: 1px solid rgba(148, 163, 184, 0.15);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.report-table th:last-child {
+    border-right: none;
+}
+
+.report-table th.col-a {
+    text-align: left;
+    min-width: 220px;
+}
+
+.report-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    border-right: 1px solid rgba(148, 163, 184, 0.1);
+    text-align: center;
+    transition: var(--transition-fast);
+}
+
+.report-table td:last-child {
+    border-right: none;
+}
+
+.report-table .label-cell {
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    border-right: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.report-table .label-cell.indent {
+    padding-left: 40px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.report-table .label-cell.highlight-mixer {
+    color: var(--accent-amber);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.report-table .label-cell.highlight-pellet {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.report-table .label-cell.highlight-stock {
+    color: var(--accent-rose);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.report-table .value-cell {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.report-table .total-cell {
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+.report-table .target-cell {
+    font-weight: 600;
+    color: var(--accent-amber);
+    opacity: 0.7;
+}
+
+.report-table .day-display {
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--accent-indigo);
+    letter-spacing: 0.02em;
+}
+
+/* Row highlights */
+.row-ngay td {
+    background: rgba(99, 102, 241, 0.05);
+    border-bottom: 2px solid rgba(99, 102, 241, 0.4);
+}
+
+.row-mixer td {
+    background: rgba(245, 158, 11, 0.05);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.row-cambot td {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+}
+
+.row-total-pellet td {
+    background: rgba(6, 182, 212, 0.05);
+    border-bottom: 2px solid rgba(6, 182, 212, 0.25);
+}
+
+/* Pellet 2 — sky blue */
+.row-pl2 td {
+    background: rgba(56, 189, 248, 0.10);
+}
+
+/* Pellet 4 — lime yellow */
+.row-pl4 td {
+    background: rgba(190, 242, 100, 0.10);
+}
+
+/* Pellet 6 — moss green */
+.row-pl6 td {
+    background: rgba(74, 222, 128, 0.10);
+}
+
+.row-sale td {
+    border-top: 2px solid rgba(148, 163, 184, 0.2);
+}
+
+.row-stock td {
+    background: rgba(244, 63, 94, 0.04);
+}
+
+/* Editable cells */
+.editable-cell input {
+    width: 100%;
+    max-width: 200px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    transition: var(--transition);
+    outline: none;
+}
+
+.editable-cell input:focus {
+    border-color: var(--accent-indigo);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.editable-cell input::placeholder {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* --- Print styles --- */
+@media print {
+    .bg-shapes, .header, .day-buttons-section, .footer, .btn-capture {
+        display: none !important;
+    }
+
+    body {
+        background: white;
+        color: #1a1a1a;
+    }
+
+    .report-card {
+        background: white;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .report-table th, .report-table td {
+        border: 1px solid #ccc;
+        color: #1a1a1a;
+    }
+
+    .report-table .total-cell {
+        color: #0066aa;
+    }
+
+    .report-table .highlight-mixer,
+    .report-table .highlight-pellet,
+    .report-table .highlight-stock {
+        color: #1a1a1a;
+    }
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .day-buttons-grid {
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+    }
+
+    .day-btn {
+        font-size: 0.8rem;
+    }
+
+    .report-table {
+        font-size: 0.8rem;
+    }
+
+    .report-table td, .report-table th {
+        padding: 8px 10px;
+    }
+
+    .report-table .label-cell.indent {
+        padding-left: 24px;
+    }
+}

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Hàng Ngày - Nhà Máy Bình Dương</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='report.css') }}">
+</head>
+<body>
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="/" class="back-link" title="Về Dashboard">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 id="main-title">Báo Cáo Sản Lượng Hàng Ngày</h1>
+                        <p class="subtitle" id="report-subtitle">Nhà Máy Bình Dương</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="month-selector">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <select id="month-dropdown" onchange="changeMonth(this.value)">
+                            {% for m in months %}
+                            <option value="{{ m.key }}" {% if m.key == selected_month %}selected{% endif %}>
+                                {{ m.label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Day Buttons -->
+        <section class="day-buttons-section">
+            <div class="day-buttons-card glass-card">
+                <h3 class="day-buttons-title">Chọn ngày xem báo cáo</h3>
+                <div class="day-buttons-grid" id="day-buttons-grid">
+                    {% for d in range(1, 32) %}
+                    <button class="day-btn {% if d == 1 %}active{% endif %}"
+                            id="day-btn-{{ d }}"
+                            data-day="{{ d }}"
+                            onclick="selectDay({{ d }})">
+                        {{ d }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- Report Table -->
+        <section class="report-section" id="report-section">
+            <div class="report-card glass-card">
+                <div class="report-header-bar">
+                    <h2 id="report-title">SẢN LƯỢNG THÁNG</h2>
+                    <button class="btn-capture" id="btn-capture" onclick="captureReport()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <span id="capture-text">Capture báo cáo</span>
+                    </button>
+                </div>
+                <div class="report-table-wrapper">
+                    <table class="report-table" id="report-table">
+                        <thead>
+                            <tr>
+                                <th class="col-a"></th>
+                                <th class="col-b">Target</th>
+                                <th class="col-c">CA 1</th>
+                                <th class="col-d">CA 2</th>
+                                <th class="col-e">CA 3</th>
+                                <th class="col-f">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-body">
+                            <tr class="row-ngay">
+                                <td class="label-cell">NGÀY</td>
+                                <td id="cell-day" colspan="5" class="day-display">1</td>
+                            </tr>
+                            <tr class="row-mixer">
+                                <td class="label-cell highlight-mixer">MIXER FEEDMILL (TẤN)</td>
+                                <td class="target-cell">2200</td>
+                                <td id="mixer-ca1" class="value-cell">-</td>
+                                <td id="mixer-ca2" class="value-cell">-</td>
+                                <td id="mixer-ca3" class="value-cell">-</td>
+                                <td id="mixer-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-cambot">
+                                <td class="label-cell">SẢN LƯỢNG CÁM BỘT (TẤN)</td>
+                                <td id="cam-bot-val" class="value-cell" colspan="5">-</td>
+                            </tr>
+                            <tr class="row-total-pellet">
+                                <td class="label-cell highlight-pellet">TOTAL PELLET</td>
+                                <td class="target-cell">2150</td>
+                                <td id="tp-ca1" class="value-cell">-</td>
+                                <td id="tp-ca2" class="value-cell">-</td>
+                                <td id="tp-ca3" class="value-cell">-</td>
+                                <td id="tp-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-pellet">
+                                <td class="label-cell indent">PELLET 1</td>
+                                <td></td>
+                                <td id="pl1-ca1" class="value-cell">-</td>
+                                <td id="pl1-ca2" class="value-cell">-</td>
+                                <td id="pl1-ca3" class="value-cell">-</td>
+                                <td id="pl1-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-pellet row-pl2">
+                                <td class="label-cell indent">PELLET 2</td>
+                                <td></td>
+                                <td id="pl2-ca1" class="value-cell">-</td>
+                                <td id="pl2-ca2" class="value-cell">-</td>
+                                <td id="pl2-ca3" class="value-cell">-</td>
+                                <td id="pl2-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-pellet">
+                                <td class="label-cell indent">PELLET 3</td>
+                                <td></td>
+                                <td id="pl3-ca1" class="value-cell">-</td>
+                                <td id="pl3-ca2" class="value-cell">-</td>
+                                <td id="pl3-ca3" class="value-cell">-</td>
+                                <td id="pl3-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-pellet row-pl4">
+                                <td class="label-cell indent">PELLET 4</td>
+                                <td></td>
+                                <td id="pl4-ca1" class="value-cell">-</td>
+                                <td id="pl4-ca2" class="value-cell">-</td>
+                                <td id="pl4-ca3" class="value-cell">-</td>
+                                <td id="pl4-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-pellet">
+                                <td class="label-cell indent">PELLET 5</td>
+                                <td></td>
+                                <td id="pl5-ca1" class="value-cell">-</td>
+                                <td id="pl5-ca2" class="value-cell">-</td>
+                                <td id="pl5-ca3" class="value-cell">-</td>
+                                <td id="pl5-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-pellet row-pl6">
+                                <td class="label-cell indent">PELLET 6</td>
+                                <td></td>
+                                <td id="pl6-ca1" class="value-cell">-</td>
+                                <td id="pl6-ca2" class="value-cell">-</td>
+                                <td id="pl6-ca3" class="value-cell">-</td>
+                                <td id="pl6-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-pellet">
+                                <td class="label-cell indent">PELLET 7</td>
+                                <td></td>
+                                <td id="pl7-ca1" class="value-cell">-</td>
+                                <td id="pl7-ca2" class="value-cell">-</td>
+                                <td id="pl7-ca3" class="value-cell">-</td>
+                                <td id="pl7-total" class="value-cell total-cell">-</td>
+                            </tr>
+                            <tr class="row-sale">
+                                <td class="label-cell">SALE (TẤN)</td>
+                                <td id="sale-val" class="editable-cell" colspan="5">
+                                    <input type="number" id="sale-input" placeholder="Nhập số liệu..." step="0.1">
+                                </td>
+                            </tr>
+                            <tr class="row-stock">
+                                <td class="label-cell highlight-stock">STOCK (TẤN)</td>
+                                <td id="stock-val" class="editable-cell" colspan="5">
+                                    <input type="number" id="stock-input" placeholder="Nhập số liệu..." step="0.1">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>CÔNG TY CỔ PHẦN CHĂN NUÔI C.P VIỆT NAM — Chi Nhánh Tại Bình Dương — Phòng Sản Xuất</p>
+        </footer>
+    </div>
+
+    <script>
+        const SELECTED_MONTH = {{ selected_month | tojson | safe }};
+        const AVAILABLE_MONTHS = {{ months | tojson | safe }};
+        const DAYS_WITH_DATA = {{ days_with_data | tojson | safe }};
+    </script>
+    <script src="/api/lib/h2c"></script>
+    <script src="{{ url_for('static', filename='report.js') }}"></script>
+    <script>
+    async function captureReport() {
+        const btn = document.getElementById('btn-capture');
+        const txt = document.getElementById('capture-text');
+        const orig = txt.textContent;
+        btn.disabled = true;
+        txt.textContent = 'Đang chụp...';
+
+        try {
+            const el = document.querySelector('.report-card');
+            // Hide the capture button during screenshot
+            btn.style.visibility = 'hidden';
+
+            const canvas = await html2canvas(el, {
+                backgroundColor: '#0f172a',
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                allowTaint: true,
+            });
+
+            btn.style.visibility = 'visible';
+
+            // Convert to blob
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+            // Try clipboard first
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                txt.textContent = '✅ Đã copy!';
+                btn.classList.add('capture-success');
+            } catch (clipErr) {
+                console.warn('Clipboard failed, downloading instead:', clipErr);
+                // Fallback: download file
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `baocao_ngay${document.getElementById('cell-day').textContent.trim()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                txt.textContent = '✅ Đã tải xuống!';
+                btn.classList.add('capture-success');
+            }
+
+            setTimeout(() => {
+                txt.textContent = orig;
+                btn.disabled = false;
+                btn.classList.remove('capture-success');
+            }, 2500);
+
+        } catch (err) {
+            console.error('Capture error:', err);
+            btn.style.visibility = 'visible';
+            txt.textContent = '❌ Lỗi!';
+            setTimeout(() => { txt.textContent = orig; btn.disabled = false; }, 2000);
+        }
+    }
+    </script>
+</body>
+</html>

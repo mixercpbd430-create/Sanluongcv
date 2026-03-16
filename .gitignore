@@ -1,0 +1,43 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ─── Environment ───
+.env
+venv/
+env/
+
+# ─── Database (local only) ───
+production.db
+
+# ─── Excel files (local only) ───
+*.xlsx
+*.xlsm
+~$*
+
+# ─── Node modules ───
+node_modules/
+package.json
+package-lock.json
+
+# ─── IDE ───
+.vscode/
+.idea/
+
+# ─── OS ───
+Thumbs.db
+.DS_Store
+
+# ─── DB Browser ───
+DB.Browser.for.SQLite-v3.13.1-win64/
+
+# ─── Client config (local) ───
+client/config.json
+
+# ─── Misc ───
+*.log
