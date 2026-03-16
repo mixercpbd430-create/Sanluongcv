@@ -24,6 +24,12 @@ DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 # Initialize database on startup
 init_db(DATA_DIR)
 
+
+@app.route("/healthz")
+def healthz():
+    """Health check endpoint for cloud platforms (Render, etc.)."""
+    return "ok", 200
+
 # ── In-memory cache (reads from SQLite, not Excel) ───────────
 CACHE_TTL = 300  # 5 minutes
 _cache = {"data": None, "timestamp": 0}
