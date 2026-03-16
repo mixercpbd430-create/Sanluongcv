@@ -39,7 +39,17 @@ if getattr(sys, 'frozen', False):
 else:
     _app_dir = os.path.dirname(os.path.abspath(__file__))
 
-CONFIG_FILE = os.path.join(_app_dir, "config.json")
+# Support --profile argument for per-user config files
+_profile = ""
+for i, arg in enumerate(sys.argv):
+    if arg == "--profile" and i + 1 < len(sys.argv):
+        _profile = sys.argv[i + 1]
+
+if _profile:
+    CONFIG_FILE = os.path.join(_app_dir, f"config_{_profile}.json")
+else:
+    CONFIG_FILE = os.path.join(_app_dir, "config.json")
+
 DEFAULT_CONFIG = {
     "server_url": "https://sanluongcv.onrender.com",
     "username": "",
@@ -218,7 +228,10 @@ class UploaderApp:
     def __init__(self):
         self.config = load_config()
         self.root = tk.Tk()
-        self.root.title("📊 Cập Nhật Sản Lượng")
+        title = "📊 Cập Nhật Sản Lượng"
+        if _profile:
+            title += f" — {_profile.upper()}"
+        self.root.title(title)
         self.root.geometry("520x520")
         self.root.resizable(False, False)
         self.root.configure(bg="#1a1a2e")
