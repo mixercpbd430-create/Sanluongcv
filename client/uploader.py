@@ -36,6 +36,7 @@ CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.j
 DEFAULT_CONFIG = {
     "server_url": "http://localhost:5000",
     "username": "",
+    "password": "",
     "folder": "",
 }
 
@@ -201,7 +202,7 @@ def upload_data(server_url, username, password, entries):
         "password": password,
         "entries": entries,
     }
-    resp = requests.post(url, json=payload, timeout=30)
+    resp = requests.post(url, json=payload, timeout=120)
     return resp.json()
 
 
@@ -251,7 +252,7 @@ class UploaderApp:
         # Password
         tk.Label(form, text="Password:", font=("Segoe UI", 10),
                  bg=bg, fg=fg).grid(row=2, column=0, sticky="w", pady=4)
-        self.pass_var = tk.StringVar()
+        self.pass_var = tk.StringVar(value=self.config.get("password", ""))
         tk.Entry(form, textvariable=self.pass_var, font=("Segoe UI", 10),
                  show="•", bg=entry_bg, fg=fg, insertbackground=fg, relief="flat",
                  width=35).grid(row=2, column=1, columnspan=2, pady=4, sticky="ew")
@@ -321,9 +322,10 @@ class UploaderApp:
                 self._log(f"❌ Folder không tồn tại: {folder}")
                 return
 
-            # Save config
+            # Save config (including password for auto mode)
             self.config["server_url"] = server
             self.config["username"] = username
+            self.config["password"] = password
             self.config["folder"] = folder
             save_config(self.config)
 
