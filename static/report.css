@@ -125,7 +125,7 @@
 }
 
 .report-header-bar h2 {
-    font-size: 1.1rem;
+    font-size: 2.2rem;
     font-weight: 800;
     color: #1a1a1a;
     letter-spacing: 0.03em;
@@ -141,7 +141,7 @@
     border-radius: 8px;
     color: #333;
     font-family: inherit;
-    font-size: 0.8rem;
+    font-size: 1.6rem;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
@@ -172,36 +172,39 @@
 }
 
 .report-table {
-    width: 100%;
+    width: auto;
     border-collapse: collapse;
-    font-size: 0.95rem;
+    font-size: 1.9rem;
     border: 3px solid #333;
     background: #ffffff;
 }
 
 .report-table th {
     text-align: center;
-    padding: 12px 16px;
+    padding: 14px 24px;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 1.7rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #1a1a1a;
+    white-space: nowrap;
     background: #e8e8e8;
     border: 2px solid #555;
 }
 
 .report-table th.col-a {
     text-align: left;
-    min-width: 220px;
+    min-width: auto;
+    white-space: nowrap;
 }
 
 .report-table td {
-    padding: 12px 16px;
+    padding: 14px 24px;
     border: 1.5px solid #999;
     text-align: center;
     color: #1a1a1a;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .report-table .label-cell {
@@ -222,21 +225,21 @@
 .report-table .label-cell.highlight-mixer {
     color: #b45309;
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 2rem;
     background: #fef3c7;
 }
 
 .report-table .label-cell.highlight-pellet {
     color: #0369a1;
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 2rem;
     background: #e0f2fe;
 }
 
 .report-table .label-cell.highlight-stock {
     color: #be123c;
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 2rem;
     background: #ffe4e6;
 }
 
@@ -249,7 +252,7 @@
 .report-table .total-cell {
     font-weight: 800;
     color: #059669;
-    font-size: 1.05rem;
+    font-size: 2.1rem;
 }
 
 .report-table .target-cell {
@@ -259,7 +262,7 @@
 
 .report-table .day-display {
     text-align: center;
-    font-size: 1.4rem;
+    font-size: 2.8rem;
     font-weight: 800;
     color: #4338ca;
     letter-spacing: 0.02em;
@@ -314,14 +317,14 @@
 /* Editable cells */
 .editable-cell input {
     width: 100%;
-    max-width: 200px;
-    padding: 8px 12px;
+    min-width: 300px;
+    padding: 10px 16px;
     background: #fff;
     border: 2px solid #999;
     border-radius: 4px;
     color: #1a1a1a;
     font-family: inherit;
-    font-size: 0.9rem;
+    font-size: 1.8rem;
     font-weight: 600;
     text-align: center;
     transition: var(--transition);

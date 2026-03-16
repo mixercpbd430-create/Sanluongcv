@@ -217,12 +217,35 @@
             // Hide the capture button during screenshot
             btn.style.visibility = 'hidden';
 
+            // Replace input fields with plain text for clean capture
+            const inputs = el.querySelectorAll('.editable-cell input');
+            const savedInputs = [];
+            inputs.forEach(input => {
+                const cell = input.parentElement;
+                const value = input.value.trim() || '0';
+                savedInputs.push({ cell, input, value });
+                // Create span with same styling as value cells
+                const span = document.createElement('span');
+                span.textContent = value;
+                span.className = 'capture-value-text';
+                span.style.cssText = 'font-size: 1.9rem; font-weight: 700; color: #1a1a1a;';
+                input.style.display = 'none';
+                cell.appendChild(span);
+            });
+
             const canvas = await html2canvas(el, {
-                backgroundColor: '#0f172a',
+                backgroundColor: '#ffffff',
                 scale: 2,
                 useCORS: true,
                 logging: false,
                 allowTaint: true,
+            });
+
+            // Restore inputs
+            savedInputs.forEach(({ cell, input }) => {
+                input.style.display = '';
+                const span = cell.querySelector('.capture-value-text');
+                if (span) span.remove();
             });
 
             btn.style.visibility = 'visible';
