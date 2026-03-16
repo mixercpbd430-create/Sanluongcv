@@ -32,9 +32,16 @@ except ImportError:
 
 
 # ─── Config ────────────────────────────────────────────────
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+# When running as PyInstaller EXE, __file__ points to a temp dir.
+# Use the directory of the actual EXE so config.json is persisted.
+if getattr(sys, 'frozen', False):
+    _app_dir = os.path.dirname(sys.executable)
+else:
+    _app_dir = os.path.dirname(os.path.abspath(__file__))
+
+CONFIG_FILE = os.path.join(_app_dir, "config.json")
 DEFAULT_CONFIG = {
-    "server_url": "http://localhost:5000",
+    "server_url": "https://sanluongcv.onrender.com",
     "username": "",
     "password": "",
     "folder": "",
