@@ -38,7 +38,7 @@ echo.
 
 REM Create the scheduled task
 echo Đang tạo Task Scheduler...
-schtasks /create /tn "SanLuong_AutoUpload" /tr "\"%PYTHON_PATH%\" \"%SCRIPT_DIR%auto_upload.py\"" /sc daily /st 06:00 /f /rl highest
+schtasks /create /tn "SanLuong_AutoUpload" /tr "\"%PYTHON_PATH%\" \"%SCRIPT_DIR%auto_upload.py\"" /sc daily /st 06:00 /f /rl limited
 
 if %errorlevel% equ 0 (
     echo.
