@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateSubtitle() {
     const sel = AVAILABLE_MONTHS.find(m => m.key === SELECTED_MONTH);
     const label = sel ? sel.label : '';
-    document.getElementById('report-subtitle').textContent = `Nhà Máy Bình Dương — ${label}`;
+    document.getElementById('report-subtitle').textContent = label;
 }
 
 function changeMonth(monthKey) {
