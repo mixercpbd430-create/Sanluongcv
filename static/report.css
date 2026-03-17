@@ -342,6 +342,18 @@
     font-weight: 400;
 }
 
+/* --- Capture Mode: bold black borders for screenshot --- */
+.report-table.capture-mode,
+.report-table.capture-mode th,
+.report-table.capture-mode td,
+.report-table.capture-mode .label-cell {
+    border: 2pt solid #000000 !important;
+    border-top: 2pt solid #000000 !important;
+    border-bottom: 2pt solid #000000 !important;
+    border-left: 2pt solid #000000 !important;
+    border-right: 2pt solid #000000 !important;
+}
+
 /* --- Print styles --- */
 @media print {
     .bg-shapes, .header, .day-buttons-section, .footer, .btn-capture {

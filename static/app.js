@@ -317,6 +317,12 @@ function getChartOptions(stacked) {
                     usePointStyle: true,
                     pointStyle: 'rectRounded',
                 },
+                onClick: (e, legendItem, legend) => {
+                    const lineName = legendItem.text;
+                    if (lineName && RAW_DATA[lineName]) {
+                        selectLine(lineName);
+                    }
+                },
             },
             tooltip: {
                 backgroundColor: 'rgba(17, 24, 39, 0.95)',
@@ -449,6 +455,9 @@ function renderOverviewTable(tbody, tfoot) {
 
     const maxDays = Math.max(...lineNames.map(ln => RAW_DATA[ln].days.length));
 
+    // Pellet lines only (exclude MIXER) for TỔNG column
+    const pelletLinesForTotal = lineNames.filter(ln => ln !== 'MIXER');
+
     for (let dayIdx = 0; dayIdx < maxDays; dayIdx++) {
         const dayNum = dayIdx + 1;
         let rowTotal = 0;
@@ -457,7 +466,10 @@ function renderOverviewTable(tbody, tfoot) {
         lineNames.forEach(ln => {
             const dayData = RAW_DATA[ln].days.find(d => d.day === dayNum);
             const val = dayData ? dayData.total : 0;
-            rowTotal += val;
+            // Only add to total if it's a pellet line (not MIXER)
+            if (ln !== 'MIXER') {
+                rowTotal += val;
+            }
             cells += `<td class="value-cell">${formatNumber(val)}</td>`;
         });
 
@@ -479,7 +491,10 @@ function renderOverviewTable(tbody, tfoot) {
     let footCells = '';
     lineNames.forEach(ln => {
         const total = RAW_DATA[ln].summary.total;
-        grandTotal += total;
+        // Only add to grand total if it's a pellet line (not MIXER)
+        if (ln !== 'MIXER') {
+            grandTotal += total;
+        }
         footCells += `<td class="value-cell">${formatNumber(total)}</td>`;
     });
 

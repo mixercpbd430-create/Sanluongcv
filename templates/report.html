@@ -214,8 +214,24 @@
 
         try {
             const el = document.querySelector('.report-card');
+            const table = document.getElementById('report-table');
             // Hide the capture button during screenshot
             btn.style.visibility = 'hidden';
+
+            // Apply inline border styles for reliable html2canvas rendering
+            const borderStyle = '2pt solid #000000';
+            const savedBorders = [];
+
+            // Save and override table border
+            savedBorders.push({ el: table, border: table.style.border });
+            table.style.border = borderStyle;
+
+            // Save and override all th and td borders
+            const cells = table.querySelectorAll('th, td');
+            cells.forEach(cell => {
+                savedBorders.push({ el: cell, border: cell.style.border });
+                cell.style.border = borderStyle;
+            });
 
             // Replace input fields with plain text for clean capture
             const inputs = el.querySelectorAll('.editable-cell input');
@@ -246,6 +262,11 @@
                 input.style.display = '';
                 const span = cell.querySelector('.capture-value-text');
                 if (span) span.remove();
+            });
+
+            // Restore all borders
+            savedBorders.forEach(({ el, border }) => {
+                el.style.border = border;
             });
 
             btn.style.visibility = 'visible';
