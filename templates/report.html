@@ -218,20 +218,8 @@
             // Hide the capture button during screenshot
             btn.style.visibility = 'hidden';
 
-            // Apply inline border styles for reliable html2canvas rendering
-            const borderStyle = '2pt solid #000000';
-            const savedBorders = [];
-
-            // Save and override table border
-            savedBorders.push({ el: table, border: table.style.border });
-            table.style.border = borderStyle;
-
-            // Save and override all th and td borders
-            const cells = table.querySelectorAll('th, td');
-            cells.forEach(cell => {
-                savedBorders.push({ el: cell, border: cell.style.border });
-                cell.style.border = borderStyle;
-            });
+            // Add capture-mode class for consistent borders
+            table.classList.add('capture-mode');
 
             // Replace input fields with plain text for clean capture
             const inputs = el.querySelectorAll('.editable-cell input');
@@ -264,10 +252,8 @@
                 if (span) span.remove();
             });
 
-            // Restore all borders
-            savedBorders.forEach(({ el, border }) => {
-                el.style.border = border;
-            });
+            // Remove capture-mode class
+            table.classList.remove('capture-mode');
 
             btn.style.visibility = 'visible';
 
