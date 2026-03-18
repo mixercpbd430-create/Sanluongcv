@@ -343,39 +343,7 @@
     font-weight: 400;
 }
 
-/* --- Capture Mode: bold black borders for screenshot --- */
-.report-table.capture-mode {
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-    border: 2px solid #000000 !important;
-}
-
-.report-table.capture-mode th,
-.report-table.capture-mode td {
-    border: 2px solid #000000 !important;
-    border-top: 2px solid #000000 !important;
-    border-bottom: 2px solid #000000 !important;
-    border-left: 2px solid #000000 !important;
-    border-right: 2px solid #000000 !important;
-}
-
-/* Override all row-specific borders in capture mode */
-.report-table.capture-mode .row-ngay td,
-.report-table.capture-mode .row-mixer td,
-.report-table.capture-mode .row-cambot td,
-.report-table.capture-mode .row-total-pellet td,
-.report-table.capture-mode .row-sale td,
-.report-table.capture-mode .row-stock td {
-    border: 2px solid #000000 !important;
-    border-top: 2px solid #000000 !important;
-    border-bottom: 2px solid #000000 !important;
-    border-left: 2px solid #000000 !important;
-    border-right: 2px solid #000000 !important;
-}
-
-.report-table.capture-mode .label-cell {
-    border-right: 2px solid #000000 !important;
-}
+/* --- Capture Mode: handled by inline styles in JS for html2canvas --- */
 
 /* --- Print styles --- */
 @media print {
