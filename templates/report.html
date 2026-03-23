@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Báo Cáo Hàng Ngày - Nhà Máy Bình Dương</title>
+    <title>Báo Cáo Hàng Ngày</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -29,7 +29,7 @@
                     </a>
                     <div>
                         <h1 id="main-title">Báo Cáo Sản Lượng Hàng Ngày</h1>
-                        <p class="subtitle" id="report-subtitle">Nhà Máy Bình Dương</p>
+                        <p class="subtitle" id="report-subtitle"></p>
                     </div>
                 </div>
                 <div class="header-right">
@@ -193,7 +193,7 @@
         </section>
 
         <footer class="footer">
-            <p>CÔNG TY CỔ PHẦN CHĂN NUÔI C.P VIỆT NAM — Chi Nhánh Tại Bình Dương — Phòng Sản Xuất</p>
+            <p>Phòng Sản Xuất</p>
         </footer>
     </div>
 
@@ -213,43 +213,103 @@
         txt.textContent = 'Đang chụp...';
 
         try {
-            const el = document.querySelector('.report-card');
             const table = document.getElementById('report-table');
-            // Hide the capture button during screenshot
-            btn.style.visibility = 'hidden';
+            const bw = '2px';
+            const bc = '#000';
+            // Single-sided border string: each cell only has right + bottom
+            const cb = 'border-top:none; border-left:none; border-right:' + bw + ' solid ' + bc + '; border-bottom:' + bw + ' solid ' + bc + ';';
 
-            // Apply inline border styles for reliable html2canvas rendering
-            const borderStyle = '2pt solid #000000';
-            const savedBorders = [];
+            // --- Offscreen clone ---
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position:absolute; left:-9999px; top:0; background:#fff; padding:24px; font-family:Inter,sans-serif;';
+            document.body.appendChild(wrapper);
 
-            // Save and override table border
-            savedBorders.push({ el: table, border: table.style.border });
-            table.style.border = borderStyle;
+            var titleClone = document.createElement('h2');
+            titleClone.textContent = document.getElementById('report-title').textContent;
+            titleClone.style.cssText = 'font-size:2.2rem; font-weight:800; color:#1a1a1a; margin:0 0 20px 0;';
+            wrapper.appendChild(titleClone);
 
-            // Save and override all th and td borders
-            const cells = table.querySelectorAll('th, td');
-            cells.forEach(cell => {
-                savedBorders.push({ el: cell, border: cell.style.border });
-                cell.style.border = borderStyle;
-            });
+            var tClone = table.cloneNode(true);
+            tClone.removeAttribute('id');
+            tClone.removeAttribute('class');
+            // Table carries top + left border only
+            tClone.style.cssText = 'border-collapse:separate; border-spacing:0; border-top:' + bw + ' solid ' + bc + '; border-left:' + bw + ' solid ' + bc + '; border-bottom:none; border-right:none; background:#fff; font-size:1.9rem; font-family:Inter,sans-serif;';
 
-            // Replace input fields with plain text for clean capture
-            const inputs = el.querySelectorAll('.editable-cell input');
-            const savedInputs = [];
-            inputs.forEach(input => {
-                const cell = input.parentElement;
-                const value = input.value.trim() || '0';
-                savedInputs.push({ cell, input, value });
-                // Create span with same styling as value cells
-                const span = document.createElement('span');
-                span.textContent = value;
-                span.className = 'capture-value-text';
-                span.style.cssText = 'font-size: 1.9rem; font-weight: 700; color: #1a1a1a;';
-                input.style.display = 'none';
-                cell.appendChild(span);
-            });
+            // thead > tr classes
+            tClone.querySelectorAll('thead tr').forEach(function(tr) { tr.removeAttribute('class'); tr.style.cssText = ''; });
 
-            const canvas = await html2canvas(el, {
+            // Style th
+            var thCells = tClone.querySelectorAll('th');
+            for (var i = 0; i < thCells.length; i++) {
+                thCells[i].removeAttribute('class');
+                thCells[i].style.cssText = cb + ' padding:14px 24px; font-weight:700; font-size:1.7rem; text-transform:uppercase; color:#1a1a1a; white-space:nowrap; background:#e8e8e8; text-align:' + (i === 0 ? 'left' : 'center') + ';';
+            }
+
+            var bgMap = {
+                'row-ngay':'#eef2ff','row-mixer':'#fffbeb','row-cambot':'#f9fafb',
+                'row-total-pellet':'#ecfeff','row-pl2':'#e0f2fe','row-pl4':'#fef9c3',
+                'row-pl6':'#dcfce7','row-sale':'#f9fafb','row-stock':'#ffe4e6'
+            };
+            var labelBg = {'highlight-mixer':'#fef3c7','highlight-pellet':'#e0f2fe','highlight-stock':'#ffe4e6'};
+            var labelClr = {'highlight-mixer':'#b45309','highlight-pellet':'#0369a1','highlight-stock':'#be123c'};
+
+            var origRows = table.querySelectorAll('tbody tr');
+            var clRows = tClone.querySelectorAll('tbody tr');
+
+            for (var ri = 0; ri < clRows.length; ri++) {
+                var origTr = origRows[ri];
+                if (!origTr) continue;
+                var rowBg = '#fff';
+                for (var cls in bgMap) { if (origTr.classList.contains(cls)) { rowBg = bgMap[cls]; break; } }
+                clRows[ri].removeAttribute('class');
+                clRows[ri].style.cssText = '';
+
+                var origTds = origTr.querySelectorAll('td');
+                var clTds = clRows[ri].querySelectorAll('td');
+                for (var ci = 0; ci < clTds.length; ci++) {
+                    var td = clTds[ci];
+                    var oTd = origTds[ci];
+                    td.removeAttribute('class');
+                    if (!oTd) { td.style.cssText = cb + ' padding:14px 24px;'; continue; }
+
+                    var isLabel = oTd.classList.contains('label-cell');
+                    var isTotal = oTd.classList.contains('total-cell');
+                    var isTarget = oTd.classList.contains('target-cell');
+                    var isDay = oTd.classList.contains('day-display');
+                    var isIndent = oTd.classList.contains('indent');
+
+                    var bg = rowBg;
+                    if (isLabel) {
+                        bg = '#f5f5f5';
+                        for (var lc in labelBg) { if (oTd.classList.contains(lc)) { bg = labelBg[lc]; break; } }
+                    }
+
+                    var color = '#1a1a1a', fw = '600', fs = '1.9rem', ta = 'center', pl = '14px';
+                    if (isLabel) {
+                        ta = 'left'; fw = '700';
+                        for (var lk in labelClr) { if (oTd.classList.contains(lk)) { color = labelClr[lk]; fw = '800'; fs = '2rem'; break; } }
+                        if (isIndent) { pl = '40px'; fw = '600'; color = '#333'; }
+                    }
+                    if (isTotal) { color = '#059669'; fw = '800'; fs = '2.1rem'; }
+                    if (isTarget) { color = '#7c3aed'; fw = '700'; }
+                    if (isDay) { color = '#4338ca'; fw = '800'; fs = '2.8rem'; ta = 'center'; }
+
+                    td.style.cssText = cb + ' padding:14px 24px; padding-left:' + pl + '; text-align:' + ta + '; color:' + color + '; font-weight:' + fw + '; font-size:' + fs + '; white-space:nowrap; background:' + bg + '; font-variant-numeric:tabular-nums;';
+
+                    var input = td.querySelector('input');
+                    if (input) {
+                        var val = input.value.trim() || '0';
+                        td.innerHTML = '';
+                        td.textContent = val;
+                        td.style.fontWeight = '700';
+                        td.style.fontSize = '1.9rem';
+                    }
+                }
+            }
+
+            wrapper.appendChild(tClone);
+
+            var canvas = await html2canvas(wrapper, {
                 backgroundColor: '#ffffff',
                 scale: 2,
                 useCORS: true,
@@ -257,56 +317,33 @@
                 allowTaint: true,
             });
 
-            // Restore inputs
-            savedInputs.forEach(({ cell, input }) => {
-                input.style.display = '';
-                const span = cell.querySelector('.capture-value-text');
-                if (span) span.remove();
-            });
-
-            // Restore all borders
-            savedBorders.forEach(({ el, border }) => {
-                el.style.border = border;
-            });
-
+            document.body.removeChild(wrapper);
             btn.style.visibility = 'visible';
 
-            // Convert to blob
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            var blob = await new Promise(function(resolve) { canvas.toBlob(resolve, 'image/png'); });
 
-            // Try clipboard first
             try {
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
                 txt.textContent = '✅ Đã copy!';
                 btn.classList.add('capture-success');
             } catch (clipErr) {
-                console.warn('Clipboard failed, downloading instead:', clipErr);
-                // Fallback: download file
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
                 a.href = url;
-                a.download = `baocao_ngay${document.getElementById('cell-day').textContent.trim()}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                a.download = 'baocao_ngay' + document.getElementById('cell-day').textContent.trim() + '.png';
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a); URL.revokeObjectURL(url);
                 txt.textContent = '✅ Đã tải xuống!';
                 btn.classList.add('capture-success');
             }
 
-            setTimeout(() => {
-                txt.textContent = orig;
-                btn.disabled = false;
-                btn.classList.remove('capture-success');
-            }, 2500);
+            setTimeout(function() { txt.textContent = orig; btn.disabled = false; btn.classList.remove('capture-success'); }, 2500);
 
         } catch (err) {
             console.error('Capture error:', err);
             btn.style.visibility = 'visible';
             txt.textContent = '❌ Lỗi!';
-            setTimeout(() => { txt.textContent = orig; btn.disabled = false; }, 2000);
+            setTimeout(function() { txt.textContent = orig; btn.disabled = false; }, 2000);
         }
     }
     </script>

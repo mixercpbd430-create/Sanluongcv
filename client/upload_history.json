@@ -1,0 +1,39 @@
+[
+  {
+    "timestamp": "2026-03-18 09:39:12",
+    "status": "dry-run",
+    "username": "pellet mini",
+    "profile": "pellet_mini",
+    "records_sent": 62,
+    "records_saved": 0,
+    "records_skipped": 0,
+    "dry_run": true
+  },
+  {
+    "timestamp": "2026-03-18 09:59:32",
+    "status": "dry-run",
+    "username": "pellet mini",
+    "profile": "pellet_mini",
+    "windows_user": "phinho",
+    "computer": "5103711510-015",
+    "records_sent": 62,
+    "records_saved": 0,
+    "records_skipped": 0,
+    "dry_run": true
+  },
+  {
+    "timestamp": "2026-03-18 10:06:10",
+    "status": "error",
+    "username": "",
+    "profile": "default",
+    "windows_user": "phinho",
+    "computer": "5103711510-015",
+    "records_sent": 0,
+    "records_saved": 0,
+    "records_skipped": 0,
+    "dry_run": false,
+    "errors": [
+      "Config thiếu thông tin"
+    ]
+  }
+]
