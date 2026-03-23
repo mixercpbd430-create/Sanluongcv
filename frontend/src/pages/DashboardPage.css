@@ -1,0 +1,202 @@
+/* DashboardPage-specific styles — complements the global index.css */
+
+.dashboard { position: relative; min-height: 100vh; }
+
+.loading-container {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 100vh;
+  color: #94a3b8; gap: 16px;
+}
+.loading-spinner {
+  width: 48px; height: 48px;
+  border: 4px solid rgba(99,102,241,0.2);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* User menu (same styles as Flask inline styles) */
+.user-menu { position: relative; }
+.user-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 10px; padding: 8px 14px; color: #e2e8f0;
+  cursor: pointer; font-family: 'Inter', sans-serif; font-size: 0.85rem;
+  transition: all 0.3s;
+}
+.user-btn:hover { background: rgba(99,102,241,0.25); }
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.8rem; color: white;
+}
+.user-dropdown {
+  position: absolute; right: 0; top: 100%; margin-top: 8px;
+  background: #1e293b; border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 12px; padding: 8px; min-width: 200px; z-index: 100;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+}
+.user-dropdown button, .user-dropdown a {
+  display: block; width: 100%; padding: 10px 14px; text-align: left;
+  background: none; border: none; color: #e2e8f0; font-size: 0.85rem;
+  border-radius: 8px; cursor: pointer; text-decoration: none;
+  font-family: 'Inter', sans-serif; transition: background 0.2s;
+}
+.user-dropdown button:hover, .user-dropdown a:hover { background: rgba(99,102,241,0.15); }
+.user-dropdown hr { border: none; border-top: 1px solid rgba(148,163,184,0.15); margin: 4px 0; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.6); display:flex; align-items:center;
+  justify-content:center; z-index:1000; backdrop-filter:blur(4px);
+}
+.modal-card {
+  background: #1e293b; border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 16px; padding: 28px; width: 400px; max-width: 90vw;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5); color: #e2e8f0;
+}
+.modal-card h2 { font-size: 1.2rem; margin-bottom: 20px; }
+.modal-card label { display:block; font-size:0.8rem; font-weight:600; color:#94a3b8; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+.modal-card input {
+  width:100%; padding:12px 14px; background:rgba(15,23,42,0.6);
+  border:1px solid rgba(148,163,184,0.2); border-radius:10px;
+  color:#e2e8f0; font-size:0.9rem; outline:none; margin-bottom:16px;
+  font-family:'Inter',sans-serif;
+}
+.modal-card input:focus { border-color:#6366f1; }
+.modal-actions { display:flex; gap:10px; margin-top:8px; }
+.modal-actions button {
+  flex:1; padding:12px; border:none; border-radius:10px;
+  font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;
+}
+.btn-modal-save { background:linear-gradient(135deg,#10b981,#059669); color:white; }
+.btn-modal-cancel { background:rgba(148,163,184,0.1); border:1px solid rgba(148,163,184,0.2)!important; color:#94a3b8; }
+.user-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 16px; background:rgba(15,23,42,0.5); border-radius:10px;
+  margin-bottom:8px; border:1px solid rgba(148,163,184,0.1);
+}
+.user-item .u-name { font-weight:600; }
+.user-item .u-role { font-size:0.75rem; color:#94a3b8; }
+.user-item .u-pass { font-family:'Courier New',monospace; color:#fbbf24; background:rgba(251,191,36,0.1); padding:4px 10px; border-radius:6px; font-size:0.85rem; }
+.msg-ok { color:#6ee7b7; margin-bottom:12px; font-size:0.85rem; }
+.msg-err { color:#fca5a5; margin-bottom:12px; font-size:0.85rem; }
+
+/* ── Upload Status Section (Admin only) ── */
+.upload-status-section {
+  margin-bottom: 24px;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.upload-status-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: #94a3b8;
+}
+.upload-status-header h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.upload-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .upload-status-grid { grid-template-columns: 1fr; }
+}
+
+.upload-status-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 14px;
+  padding: 16px 18px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+.upload-status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.upload-status-card.status-today {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.06);
+}
+.upload-status-card.status-yesterday {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.06);
+}
+.upload-status-card.status-old,
+.upload-status-card.status-none {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.upload-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.upload-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.upload-dot.dot-green {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  animation: pulse-dot 2s infinite;
+}
+.upload-dot.dot-yellow {
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+.upload-dot.dot-red {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+
+.upload-source-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+}
+
+.upload-card-time {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  padding-left: 20px;
+}
+
+.upload-card-detail {
+  font-size: 0.75rem;
+  color: #64748b;
+  padding-left: 20px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
