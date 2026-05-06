@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sản Lượng Hàng Ngày - Nhà Máy Bình Dương</title>
+    <meta name="description" content="Báo cáo sản lượng sản xuất hàng ngày các dây chuyền - Nhà máy Bình Dương">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='chart.umd.min.js') }}"></script>
+</head>
+<body>
+    <!-- Background animated shapes -->
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header" id="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="logo">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="10" fill="url(#logo-grad)"/>
+                            <path d="M12 28V16L20 12L28 16V28L20 24L12 28Z" fill="white" fill-opacity="0.9"/>
+                            <path d="M20 12V24" stroke="white" stroke-width="1.5" stroke-opacity="0.5"/>
+                            <defs><linearGradient id="logo-grad" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 id="main-title">Sản Lượng Sản Xuất</h1>
+                        <p class="subtitle" id="report-subtitle">Nhà Máy Bình Dương</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <!-- Month Selector -->
+                    <div class="month-selector" id="month-selector">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <select id="month-dropdown" onchange="changeMonth(this.value)">
+                            {% for m in months %}
+                            <option value="{{ m.key }}" {% if m.key == selected_month %}selected{% endif %}>
+                                {{ m.label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <a href="/report?month={{ selected_month }}" class="btn-refresh" style="text-decoration: none;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                        Báo cáo ngày
+                    </a>
+                    <div class="live-indicator" id="live-indicator">
+                        <span class="pulse"></span>
+                        <span>Dữ liệu trực tiếp</span>
+                    </div>
+                    <button class="btn-refresh" id="btn-refresh" onclick="refreshData()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                        </svg>
+                        Làm mới
+                    </button>
+                    <!-- User Menu -->
+                    <div class="user-menu" id="user-menu">
+                        <button class="user-btn" onclick="toggleUserMenu()">
+                            <span class="user-avatar">{{ current_user.display_name[0] if current_user else '?' }}</span>
+                            <span class="user-name-text">{{ current_user.display_name if current_user else '' }}</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <button onclick="showChangePassword()">🔑 Đổi mật khẩu</button>
+                            {% if current_user and current_user.role == 'admin' %}
+                            <button onclick="showAdminPanel()">👥 Quản lý user</button>
+                            {% endif %}
+                            <hr>
+                            <a href="/logout">🚪 Đăng xuất</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Cards -->
+        <section class="summary-section" id="summary-section">
+            <div class="summary-grid" id="summary-grid">
+            </div>
+        </section>
+
+        <!-- Line Selector Tabs -->
+        <section class="tabs-section" id="tabs-section">
+            <div class="tabs" id="line-tabs">
+                <button class="tab active" data-line="ALL" id="tab-all" onclick="selectLine('ALL')">
+                    Tổng quan
+                </button>
+                {% for line_name in data %}
+                <button class="tab" data-line="{{ line_name }}" id="tab-{{ line_name }}" onclick="selectLine('{{ line_name }}')">
+                    {{ line_name }}
+                </button>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Chart Section -->
+        <section class="chart-section" id="chart-section">
+            <div class="chart-card glass-card">
+                <div class="chart-header">
+                    <h2 id="chart-title">Biểu Đồ Sản Lượng Hàng Ngày</h2>
+                    <div class="chart-legend" id="chart-legend-custom"></div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="productionChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Table Section -->
+        <section class="table-section" id="table-section">
+            <div class="table-card glass-card">
+                <div class="table-header">
+                    <h2 id="table-title">Chi Tiết Sản Lượng</h2>
+                    <div class="table-controls">
+                        <label class="toggle-label" id="toggle-label">
+                            <input type="checkbox" id="toggle-zero" onchange="toggleZeroDays()">
+                            <span class="toggle-slider"></span>
+                            Ẩn ngày nghỉ
+                        </label>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Ca 1 (Tấn)</th>
+                                <th>Ca 2 (Tấn)</th>
+                                <th>Ca 3 (Tấn)</th>
+                                <th>Tổng (Tấn)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                        </tbody>
+                        <tfoot id="table-foot">
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer" id="footer">
+            <p>CÔNG TY CỔ PHẦN CHĂN NUÔI C.P VIỆT NAM — Chi Nhánh Tại Bình Dương — Phòng Sản Xuất</p>
+            <p class="footer-sub">Cập nhật lần cuối: <span id="last-updated"></span></p>
+        </footer>
+    </div>
+
+    <!-- Embedded data from server -->
+    <script>
+        const RAW_DATA = {{ data | tojson | safe }};
+        const AVAILABLE_MONTHS = {{ months | tojson | safe }};
+        const SELECTED_MONTH = {{ selected_month | tojson | safe }};
+        let MONTHLY_SALE_TOTAL = {{ monthly_sale_total | tojson | safe }};
+    </script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+    <!-- User Menu Styles -->
+    <style>
+        .user-menu { position: relative; }
+        .user-btn {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.25);
+            border-radius: 10px; padding: 8px 14px; color: #e2e8f0;
+            cursor: pointer; font-family: 'Inter', sans-serif; font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .user-btn:hover { background: rgba(99,102,241,0.25); }
+        .user-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.8rem; color: white;
+        }
+        .user-dropdown {
+            display: none; position: absolute; right: 0; top: 100%; margin-top: 8px;
+            background: #1e293b; border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 12px; padding: 8px; min-width: 200px; z-index: 100;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        }
+        .user-dropdown.show { display: block; }
+        .user-dropdown button, .user-dropdown a {
+            display: block; width: 100%; padding: 10px 14px; text-align: left;
+            background: none; border: none; color: #e2e8f0; font-size: 0.85rem;
+            border-radius: 8px; cursor: pointer; text-decoration: none;
+            font-family: 'Inter', sans-serif; transition: background 0.2s;
+        }
+        .user-dropdown button:hover, .user-dropdown a:hover { background: rgba(99,102,241,0.15); }
+        .user-dropdown hr { border: none; border-top: 1px solid rgba(148,163,184,0.15); margin: 4px 0; }
+        .modal-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.6); display:flex; align-items:center;
+            justify-content:center; z-index:1000; backdrop-filter:blur(4px);
+        }
+        .modal-card {
+            background: #1e293b; border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 16px; padding: 28px; width: 400px; max-width: 90vw;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5); color: #e2e8f0;
+        }
+        .modal-card h2 { font-size: 1.2rem; margin-bottom: 20px; }
+        .modal-card label { display:block; font-size:0.8rem; font-weight:600; color:#94a3b8; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+        .modal-card input {
+            width:100%; padding:12px 14px; background:rgba(15,23,42,0.6);
+            border:1px solid rgba(148,163,184,0.2); border-radius:10px;
+            color:#e2e8f0; font-size:0.9rem; outline:none; margin-bottom:16px;
+            font-family:'Inter',sans-serif;
+        }
+        .modal-card input:focus { border-color:#6366f1; }
+        .modal-actions { display:flex; gap:10px; margin-top:8px; }
+        .modal-actions button {
+            flex:1; padding:12px; border:none; border-radius:10px;
+            font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;
+        }
+        .btn-modal-save { background:linear-gradient(135deg,#10b981,#059669); color:white; }
+        .btn-modal-cancel { background:rgba(148,163,184,0.1); border:1px solid rgba(148,163,184,0.2)!important; color:#94a3b8; }
+        .user-item {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:12px 16px; background:rgba(15,23,42,0.5); border-radius:10px;
+            margin-bottom:8px; border:1px solid rgba(148,163,184,0.1);
+        }
+        .user-item .u-name { font-weight:600; }
+        .user-item .u-role { font-size:0.75rem; color:#94a3b8; }
+        .user-item .u-pass { font-family:'Courier New',monospace; color:#fbbf24; background:rgba(251,191,36,0.1); padding:4px 10px; border-radius:6px; font-size:0.85rem; }
+        .msg-ok { color:#6ee7b7; margin-bottom:12px; font-size:0.85rem; }
+        .msg-err { color:#fca5a5; margin-bottom:12px; font-size:0.85rem; }
+    </style>
+
+    <!-- Modal containers -->
+    <div id="modal-container"></div>
+
+    <!-- User Menu JS -->
+    <script>
+    function toggleUserMenu() {
+        document.getElementById('user-dropdown').classList.toggle('show');
+    }
+    // Close menu on outside click
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('user-menu');
+        if (menu && !menu.contains(e.target)) {
+            document.getElementById('user-dropdown').classList.remove('show');
+        }
+    });
+
+    function showChangePassword() {
+        document.getElementById('user-dropdown').classList.remove('show');
+        const mc = document.getElementById('modal-container');
+        mc.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+                <div class="modal-card">
+                    <h2>🔑 Đổi Mật Khẩu</h2>
+                    <div id="pw-msg"></div>
+                    <label>Mật khẩu mới</label>
+                    <input type="password" id="new-password" placeholder="Nhập mật khẩu mới..." autofocus>
+                    <label>Xác nhận mật khẩu</label>
+                    <input type="password" id="confirm-password" placeholder="Nhập lại mật khẩu mới...">
+                    <div class="modal-actions">
+                        <button class="btn-modal-save" onclick="doChangePassword()">Lưu</button>
+                        <button class="btn-modal-cancel" onclick="closeModal()">Hủy</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function doChangePassword() {
+        const newPw = document.getElementById('new-password').value.trim();
+        const confirmPw = document.getElementById('confirm-password').value.trim();
+        const msg = document.getElementById('pw-msg');
+        if (!newPw) { msg.innerHTML = '<div class="msg-err">Mật khẩu không được để trống</div>'; return; }
+        if (newPw !== confirmPw) { msg.innerHTML = '<div class="msg-err">Mật khẩu xác nhận không khớp</div>'; return; }
+        fetch('/api/change-password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({new_password: newPw})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'ok') {
+                msg.innerHTML = '<div class="msg-ok">✅ Đổi mật khẩu thành công!</div>';
+                setTimeout(closeModal, 1500);
+            } else {
+                msg.innerHTML = `<div class="msg-err">${d.error}</div>`;
+            }
+        });
+    }
+
+    function showAdminPanel() {
+        document.getElementById('user-dropdown').classList.remove('show');
+        fetch('/api/users').then(r => r.json()).then(users => {
+            let rows = users.map(u => `
+                <div class="user-item">
+                    <div>
+                        <div class="u-name">${u.display_name}</div>
+                        <div class="u-role">${u.role === 'admin' ? '👑 Admin' : '👤 User'} — ${u.username}</div>
+                    </div>
+                    <div class="u-pass">${u.password}</div>
+                </div>`).join('');
+            const mc = document.getElementById('modal-container');
+            mc.innerHTML = `
+                <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+                    <div class="modal-card">
+                        <h2>👥 Quản Lý User</h2>
+                        <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:16px;">Danh sách tài khoản và mật khẩu hiện tại:</p>
+                        ${rows}
+                        <div class="modal-actions" style="margin-top:16px;">
+                            <button class="btn-modal-cancel" onclick="closeModal()">Đóng</button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('modal-container').innerHTML = '';
+    }
+    </script>
+</body>
+</html>
+

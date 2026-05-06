@@ -1,0 +1,516 @@
+/* ============================================
+   REPORT PAGE - Daily Report Styles
+   ============================================ */
+
+/* --- Day Buttons --- */
+.day-buttons-section {
+    margin-bottom: 24px;
+}
+
+.day-buttons-card {
+    padding: 24px;
+}
+
+.day-buttons-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.day-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px;
+}
+
+.day-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 52px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.day-btn:hover {
+    background: var(--glass-hover);
+    border-color: var(--accent-indigo);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow-indigo);
+}
+
+.day-btn.active {
+    background: var(--gradient-primary);
+    border-color: var(--accent-indigo);
+    color: white;
+    box-shadow: var(--shadow-glow-indigo);
+    transform: scale(1.05);
+}
+
+.day-btn.has-data {
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.day-btn.has-data::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent-emerald);
+}
+
+.day-btn {
+    position: relative;
+}
+
+/* --- Back Link --- */
+.back-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.back-link:hover {
+    background: var(--glass-hover);
+    color: var(--text-primary);
+    border-color: var(--accent-indigo);
+}
+
+/* --- Report Card --- */
+.report-section {
+    margin-bottom: 32px;
+}
+
+.report-card {
+    padding: 24px;
+    overflow: hidden;
+    background: #ffffff !important;
+    border: 1px solid #ddd !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+.report-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.report-header-bar h2 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    letter-spacing: 0.03em;
+}
+
+.btn-capture {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    color: #333;
+    font-family: inherit;
+    font-size: 1.6rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-capture:hover {
+    background: #e0e0e0;
+    color: #111;
+    border-color: #999;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn-capture:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.btn-capture.capture-success {
+    background: #d1fae5;
+    border-color: #6ee7b7;
+    color: #065f46;
+}
+
+/* --- Report Table (Light Theme) --- */
+.report-table-wrapper {
+    overflow-x: auto;
+}
+
+.report-table {
+    width: auto;
+    border-collapse: collapse;
+    font-size: 1.9rem;
+    border: 3px solid #333;
+    background: #ffffff;
+}
+
+.report-table th {
+    text-align: center;
+    padding: 14px 24px;
+    font-weight: 700;
+    font-size: 1.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #1a1a1a;
+    white-space: nowrap;
+    background: #e8e8e8;
+    border: 2px solid #555;
+}
+
+.report-table th.col-a {
+    text-align: left;
+    min-width: auto;
+    white-space: nowrap;
+}
+
+.report-table td {
+    padding: 14px 24px;
+    border: 1.5px solid #999;
+    text-align: center;
+    color: #1a1a1a;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.report-table .label-cell {
+    text-align: left;
+    font-weight: 700;
+    color: #1a1a1a;
+    white-space: nowrap;
+    border-right: 2px solid #555;
+    background: #f5f5f5;
+}
+
+.report-table .label-cell.indent {
+    padding-left: 40px;
+    font-weight: 600;
+    color: #333;
+}
+
+.report-table .label-cell.highlight-mixer {
+    color: #b45309;
+    font-weight: 800;
+    font-size: 2rem;
+    background: #fef3c7;
+}
+
+.report-table .label-cell.highlight-pellet {
+    color: #0369a1;
+    font-weight: 800;
+    font-size: 2rem;
+    background: #e0f2fe;
+}
+
+.report-table .label-cell.highlight-stock {
+    color: #be123c;
+    font-weight: 800;
+    font-size: 2rem;
+    background: #ffe4e6;
+}
+
+.report-table .value-cell {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.report-table .total-cell {
+    font-weight: 800;
+    color: #059669;
+    font-size: 2.1rem;
+}
+
+.report-table .target-cell {
+    font-weight: 700;
+    color: #7c3aed;
+}
+
+.report-table .day-display {
+    text-align: center;
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #4338ca;
+    letter-spacing: 0.02em;
+}
+
+/* Row highlights */
+.row-ngay td {
+    background: #eef2ff;
+    border-bottom: 3px solid #4338ca;
+}
+
+.row-mixer td {
+    background: #fffbeb;
+    border-bottom: 2px solid #d97706;
+}
+
+.row-cambot td {
+    background: #f9fafb;
+    border-bottom: 2px solid #9ca3af;
+}
+
+.row-total-pellet td {
+    background: #ecfeff;
+    border-bottom: 2px solid #0891b2;
+}
+
+/* Pellet 2 — sky blue */
+.row-pl2 td {
+    background: #e0f2fe;
+}
+
+/* Pellet 4 — lime yellow */
+.row-pl4 td {
+    background: #fef9c3;
+}
+
+/* Pellet 6 — moss green */
+.row-pl6 td {
+    background: #dcfce7;
+}
+
+.row-sale td {
+    background: #f9fafb;
+    border-top: 3px solid #555;
+}
+
+.row-stock td {
+    background: #ffe4e6;
+    border-top: 2px solid #e11d48;
+}
+
+/* Editable cells */
+.editable-cell input {
+    width: 100%;
+    min-width: 300px;
+    padding: 10px 16px;
+    background: #fff;
+    border: 2px solid #999;
+    border-radius: 4px;
+    color: #1a1a1a;
+    font-family: inherit;
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-align: center;
+    transition: var(--transition);
+    outline: none;
+}
+
+.editable-cell input:focus {
+    border-color: #4338ca;
+    box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.2);
+    background: #fefefe;
+}
+
+.editable-cell input::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+/* --- Capture Mode: bold black borders for screenshot --- */
+.report-table.capture-mode,
+.report-table.capture-mode th,
+.report-table.capture-mode td,
+.report-table.capture-mode .label-cell {
+    border: 2pt solid #000000 !important;
+    border-top: 2pt solid #000000 !important;
+    border-bottom: 2pt solid #000000 !important;
+    border-left: 2pt solid #000000 !important;
+    border-right: 2pt solid #000000 !important;
+}
+
+/* --- Print styles --- */
+@media print {
+    .bg-shapes, .header, .day-buttons-section, .footer, .btn-capture {
+        display: none !important;
+    }
+
+    body {
+        background: white;
+        color: #1a1a1a;
+    }
+
+    .report-card {
+        background: white;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .report-table th, .report-table td {
+        border: 1px solid #ccc;
+        color: #1a1a1a;
+    }
+
+    .report-table .total-cell {
+        color: #0066aa;
+    }
+
+    .report-table .highlight-mixer,
+    .report-table .highlight-pellet,
+    .report-table .highlight-stock {
+        color: #1a1a1a;
+    }
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .day-buttons-grid {
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+    }
+
+    .day-btn {
+        font-size: 0.8rem;
+    }
+
+    .report-table {
+        font-size: 0.8rem;
+    }
+
+    .report-table td, .report-table th {
+        padding: 8px 10px;
+    }
+
+    .report-table .label-cell.indent {
+        padding-left: 24px;
+    }
+}
+
+/* --- NVVH + GHI CHÚ Table --- */
+.nvvh-section {
+    margin-top: 24px;
+    overflow-x: auto;
+}
+
+.nvvh-table {
+    width: auto;
+    border-collapse: collapse;
+    font-size: 1.4rem;
+    border: 3px solid #333;
+    background: #ffffff;
+}
+
+.nvvh-table th {
+    text-align: center;
+    padding: 10px 18px;
+    font-weight: 700;
+    font-size: 1.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #1a1a1a;
+    background: #e8e8e8;
+    border: 2px solid #555;
+    white-space: nowrap;
+}
+
+.nvvh-table td {
+    padding: 8px 16px;
+    border: 1.5px solid #999;
+    color: #1a1a1a;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+.nvvh-col-ca { width: 70px; }
+.nvvh-col-machine { width: 80px; }
+.nvvh-col-name { width: 160px; }
+.nvvh-col-note { min-width: 300px; }
+
+.nvvh-ca-cell {
+    text-align: center;
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: #1a1a1a;
+    background: #fef3c7;
+    border-right: 2px solid #555;
+}
+
+.nvvh-machine {
+    text-align: center;
+    font-weight: 700;
+    color: #0369a1;
+    background: #f0f9ff;
+    border-right: 2px solid #555;
+}
+
+.nvvh-name {
+    text-align: center;
+    font-weight: 700;
+    color: #1a1a1a;
+    background: #fffbeb;
+}
+
+.nvvh-note {
+    text-align: left;
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: #b91c1c;
+    background: #fff;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.nvvh-pl67 .nvvh-machine {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+/* Capture mode for NVVH table */
+.nvvh-table.capture-mode,
+.nvvh-table.capture-mode th,
+.nvvh-table.capture-mode td {
+    border: 2pt solid #000000 !important;
+}
+
+/* --- Responsive NVVH --- */
+@media (max-width: 768px) {
+    .nvvh-table {
+        font-size: 0.75rem;
+    }
+
+    .nvvh-table td, .nvvh-table th {
+        padding: 6px 8px;
+    }
+
+    .nvvh-col-note { min-width: 180px; }
+
+    .nvvh-note {
+        font-size: 0.7rem;
+    }
+}
