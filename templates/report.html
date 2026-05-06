@@ -258,27 +258,16 @@
             // Hide the capture button during screenshot
             btn.style.visibility = 'hidden';
 
-            // Fix html2canvas border-collapse bug:
-            // Switch to border-separate with 0 spacing + uniform borders
-            const savedTableStyles = {
-                borderCollapse: table.style.borderCollapse,
-                borderSpacing: table.style.borderSpacing,
-                border: table.style.border,
-            };
-            table.style.borderCollapse = 'separate';
-            table.style.borderSpacing = '0';
-            table.style.border = '2px solid #333';
-
-            // Apply uniform borders to all cells
+            // Fix html2canvas border rendering:
+            // Keep border-collapse but force uniform borders so html2canvas renders cleanly
             const cells = table.querySelectorAll('th, td');
             const savedCellStyles = [];
             cells.forEach(cell => {
                 savedCellStyles.push({
                     el: cell,
                     border: cell.style.border,
-                    borderCollapse: cell.style.borderCollapse,
                 });
-                cell.style.border = '1px solid #999';
+                cell.style.border = '1.5px solid #888';
             });
 
             // Replace input fields with plain text for clean capture
@@ -315,9 +304,6 @@
             savedCellStyles.forEach(({ el, border }) => {
                 el.style.border = border;
             });
-
-            // Restore table styles
-            Object.assign(table.style, savedTableStyles);
 
             btn.style.visibility = 'visible';
 
