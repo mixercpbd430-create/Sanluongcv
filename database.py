@@ -163,9 +163,41 @@ def init_db(data_dir=None):
                 display_name TEXT NOT NULL
             )
         """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS nvvh (
+                id SERIAL PRIMARY KEY,
+                year INTEGER NOT NULL,
+                month INTEGER NOT NULL,
+                day INTEGER NOT NULL,
+                ca TEXT NOT NULL,
+                pl_group TEXT NOT NULL,
+                names TEXT NOT NULL DEFAULT '',
+                UNIQUE(year, month, day, ca, pl_group)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS loss_notes (
+                id SERIAL PRIMARY KEY,
+                year INTEGER NOT NULL,
+                month INTEGER NOT NULL,
+                day INTEGER NOT NULL,
+                pl_num INTEGER NOT NULL,
+                code TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                ca1_count INTEGER DEFAULT 0,
+                ca1_time INTEGER DEFAULT 0,
+                ca2_count INTEGER DEFAULT 0,
+                ca2_time INTEGER DEFAULT 0,
+                ca3_count INTEGER DEFAULT 0,
+                ca3_time INTEGER DEFAULT 0,
+                UNIQUE(year, month, day, pl_num, code)
+            )
+        """)
         # Create indexes (IF NOT EXISTS for PG)
         c.execute("CREATE INDEX IF NOT EXISTS idx_production_month ON production(year, month)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_production_line_month ON production(line_name, year, month)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_nvvh_day ON nvvh(year, month, day)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_loss_day ON loss_notes(year, month, day)")
     else:
         # SQLite syntax
         c.execute("""
@@ -379,11 +411,21 @@ def save_uploaded_data(data_dir, username, entries, nvvh_entries=None, loss_entr
     nvvh_count = 0
     for nv in (nvvh_entries or []):
         try:
-            _execute(conn, """
-                INSERT OR REPLACE INTO nvvh (year, month, day, ca, pl_group, names)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (int(nv["year"]), int(nv["month"]), int(nv["day"]),
-                  nv["ca"], nv["pl_group"], nv["names"]))
+            params = (int(nv["year"]), int(nv["month"]), int(nv["day"]),
+                      nv["ca"], nv["pl_group"], nv["names"])
+            if _use_postgres():
+                c = conn.cursor()
+                c.execute("""
+                    INSERT INTO nvvh (year, month, day, ca, pl_group, names)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (year, month, day, ca, pl_group)
+                    DO UPDATE SET names=EXCLUDED.names
+                """, params)
+            else:
+                _execute(conn, """
+                    INSERT OR REPLACE INTO nvvh (year, month, day, ca, pl_group, names)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, params)
             nvvh_count += 1
         except Exception as e:
             errors.append(f"NVVH day {nv.get('day')}: {str(e)}")
@@ -392,16 +434,31 @@ def save_uploaded_data(data_dir, username, entries, nvvh_entries=None, loss_entr
     loss_count = 0
     for lo in (loss_entries or []):
         try:
-            _execute(conn, """
-                INSERT OR REPLACE INTO loss_notes
-                (year, month, day, pl_num, code, description,
-                 ca1_count, ca1_time, ca2_count, ca2_time, ca3_count, ca3_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (int(lo["year"]), int(lo["month"]), int(lo["day"]),
-                  int(lo["pl_num"]), lo["code"], lo.get("description", ""),
-                  int(lo.get("ca1_count", 0)), int(lo.get("ca1_time", 0)),
-                  int(lo.get("ca2_count", 0)), int(lo.get("ca2_time", 0)),
-                  int(lo.get("ca3_count", 0)), int(lo.get("ca3_time", 0))))
+            params = (int(lo["year"]), int(lo["month"]), int(lo["day"]),
+                      int(lo["pl_num"]), lo["code"], lo.get("description", ""),
+                      int(lo.get("ca1_count", 0)), int(lo.get("ca1_time", 0)),
+                      int(lo.get("ca2_count", 0)), int(lo.get("ca2_time", 0)),
+                      int(lo.get("ca3_count", 0)), int(lo.get("ca3_time", 0)))
+            if _use_postgres():
+                c = conn.cursor()
+                c.execute("""
+                    INSERT INTO loss_notes
+                    (year, month, day, pl_num, code, description,
+                     ca1_count, ca1_time, ca2_count, ca2_time, ca3_count, ca3_time)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (year, month, day, pl_num, code)
+                    DO UPDATE SET description=EXCLUDED.description,
+                        ca1_count=EXCLUDED.ca1_count, ca1_time=EXCLUDED.ca1_time,
+                        ca2_count=EXCLUDED.ca2_count, ca2_time=EXCLUDED.ca2_time,
+                        ca3_count=EXCLUDED.ca3_count, ca3_time=EXCLUDED.ca3_time
+                """, params)
+            else:
+                _execute(conn, """
+                    INSERT OR REPLACE INTO loss_notes
+                    (year, month, day, pl_num, code, description,
+                     ca1_count, ca1_time, ca2_count, ca2_time, ca3_count, ca3_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, params)
             loss_count += 1
         except Exception as e:
             errors.append(f"LOSS PL{lo.get('pl_num')} day {lo.get('day')}: {str(e)}")
