@@ -130,22 +130,22 @@ def main():
     log.info(f"📂 Đọc file từ: {folder}")
     log.info(f"👤 User: {username}")
 
-    entries, file_results = read_all_files(folder, username)
+    entries, nvvh_entries, loss_entries, file_results = read_all_files(folder, username)
 
     for msg in file_results:
         log.info(msg)
 
-    if not entries:
+    if not entries and not nvvh_entries and not loss_entries:
         log.warning("⚠️ Không tìm thấy dữ liệu phù hợp")
         add_history_entry("no-data", username)
         sys.exit(0)
 
-    log.info(f"📊 Tổng: {len(entries)} bản ghi")
+    log.info(f"📊 Tổng: {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS")
 
     # Dry-run mode: stop here
     if _dry_run:
         log.info("🧪 [DRY-RUN] Chỉ kiểm tra đọc file. Không gửi lên server.")
-        log.info(f"🧪 [DRY-RUN] Sẽ gửi {len(entries)} bản ghi nếu chạy thật.")
+        log.info(f"🧪 [DRY-RUN] Sẽ gửi {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS nếu chạy thật.")
         add_history_entry("dry-run", username, records_sent=len(entries), dry_run=True)
         log.info("Hoàn tất (dry-run)!")
         return
@@ -154,13 +154,19 @@ def main():
     log.info(f"🚀 Đang gửi lên {server}...")
 
     try:
-        result = upload_data(server, username, password, entries)
+        result = upload_data(server, username, password, entries, nvvh_entries, loss_entries)
 
         if result.get("status") == "ok":
             saved = result.get("inserted", 0)
+            nvvh_saved = result.get("nvvh_count", 0)
+            loss_saved = result.get("loss_count", 0)
             skipped = result.get("skipped", 0)
             log.info(f"✅ Gửi thành công!")
-            log.info(f"   Đã lưu: {saved} bản ghi")
+            log.info(f"   Sản lượng: {saved} bản ghi")
+            if nvvh_saved > 0:
+                log.info(f"   NVVH: {nvvh_saved} bản ghi")
+            if loss_saved > 0:
+                log.info(f"   LOSS: {loss_saved} bản ghi")
             if skipped > 0:
                 log.info(f"   Bỏ qua: {skipped}")
 
