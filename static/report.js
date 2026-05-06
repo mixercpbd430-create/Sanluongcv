@@ -213,7 +213,7 @@ function renderLossNotes(lossNotes) {
 function fmtLoss(loss, caKey) {
     const count = loss[`${caKey}_count`];
     const time = loss[`${caKey}_time`];
-    let parts = [`Lỗi ${loss.code}: ${loss.desc}`];
+    let parts = [`Loss ${loss.code}: ${loss.desc}`];
     if (count > 0) parts.push(`${count} lần`);
     if (time > 0) parts.push(`${time}'`);
     return parts.join(', ');
