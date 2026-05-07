@@ -190,8 +190,10 @@ def parse_excel_file(filepath, config):
 
 # ─── NVVH Parser ───────────────────────────────────────────
 def parse_nvvh_from_file(filepath, month, year):
-    """Parse NVVH (operator names) from PL file.
-    Reads AH49, AL49, AO49 from sheets 1-31.
+    """Parse NVVH (operator names) from PL or MIXER file.
+    PL files:    Row 49, columns AH(33), AL(37), AO(40) in day sheets 1-31.
+    MIXER files: Row 85, columns M(12), P(15), S(18) in day sheets 1-31.
+                 Format: "CA1:name1 name2", "CA2:name1 + name2", "CA 3:name"
     Returns list of {year, month, day, ca, pl_group, names}.
     """
     filename = os.path.basename(filepath).upper()
@@ -211,8 +213,15 @@ def parse_nvvh_from_file(filepath, month, year):
     if pl_group == "pl6_7" and "PL6 " not in filename and "PL6." not in filename:
         return []
 
-    # Column indices (0-based) for AH=33, AL=37, AO=40
-    ca_cols = {"ca1": 33, "ca2": 37, "ca3": 40}
+    # MIXER: Row 85, columns M(12), P(15), S(18) — 0-based indices
+    # PL:    Row 49, columns AH(33), AL(37), AO(40) — 0-based indices
+    if pl_group == "mixer":
+        nvvh_row = 85
+        ca_cols = {"ca1": 12, "ca2": 15, "ca3": 18}  # M=12, P=15, S=18
+    else:
+        nvvh_row = 49
+        ca_cols = {"ca1": 33, "ca2": 37, "ca3": 40}  # AH=33, AL=37, AO=40
+
     entries = []
 
     try:
@@ -222,13 +231,19 @@ def parse_nvvh_from_file(filepath, month, year):
             if sheet_name not in wb.sheetnames:
                 continue
             ws = wb[sheet_name]
-            for row in ws.iter_rows(min_row=49, max_row=49, values_only=False):
+            for row in ws.iter_rows(min_row=nvvh_row, max_row=nvvh_row, values_only=False):
                 for ca_key, col_idx in ca_cols.items():
                     if col_idx < len(row):
                         raw = row[col_idx].value
                         if raw:
                             names_str = str(raw).strip()
-                            if pl_group == "pl1_5":
+                            if pl_group == "mixer":
+                                # Strip "CA1:", "CA2:", "CA 3:" prefix
+                                names_str = re.sub(r'^CA\s*\d\s*[:：]\s*', '', names_str)
+                                # Split by + or space-separated pairs
+                                parts = re.split(r'[+]', names_str)
+                                names_str = ','.join(n.strip() for n in parts if n.strip())
+                            elif pl_group == "pl1_5":
                                 # Split names by + or -
                                 parts = re.split(r'[+\-]', names_str)
                                 names_str = ','.join(n.strip() for n in parts if n.strip())

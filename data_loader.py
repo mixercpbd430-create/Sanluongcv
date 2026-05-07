@@ -192,14 +192,17 @@ def _find_pl_file(data_dir, pl_prefix, month, year):
 
 
 def load_nvvh_for_day(data_dir, month, year, day):
-    """Read NVVH (operator names) from PL1 and PL6 files for a specific day.
+    """Read NVVH (operator names) from PL1, PL6, and MIXER files for a specific day.
 
     PL1-5: AH49 (Ca1), AL49 (Ca2), AO49 (Ca3) from PL1 file, sheet named '{day}'.
     PL6-7: Same cells from PL6 file. 1 operator runs both PL6 and PL7.
+    MIXER: M85 (Ca1), P85 (Ca2), S85 (Ca3) from MIXER file, sheet named '{day}'.
+           Format: "CA1:name1 name2", "CA2:name1 + name2", "CA 3:name"
     Names are split by '+' or '-' delimiters.
     Returns: {
         "pl1_5": {"ca1": ["name1","name2","name3"], "ca2": [...], "ca3": [...]},
         "pl6_7": {"ca1": "name", "ca2": "name", "ca3": "name"},
+        "mixer": {"ca1": "name", "ca2": "name", "ca3": "name"},
     }
     """
     import openpyxl
@@ -207,14 +210,13 @@ def load_nvvh_for_day(data_dir, month, year, day):
     result = {
         "pl1_5": {"ca1": [], "ca2": [], "ca3": []},
         "pl6_7": {"ca1": "", "ca2": "", "ca3": ""},
+        "mixer": {"ca1": "", "ca2": "", "ca3": ""},
     }
 
-    # Column indices (0-based) for AH=33, AL=37, AO=40
-    ca_cols = {"ca1": 33, "ca2": 37, "ca3": 40}
     sheet_name = str(day)
 
-    def _read_nvvh_row49(filepath):
-        """Read row 49 from a specific sheet, return ca values."""
+    def _read_nvvh_row(filepath, row_num, col_indices):
+        """Read a specific row from a specific sheet, return ca values."""
         try:
             wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
             if sheet_name not in wb.sheetnames:
@@ -222,8 +224,8 @@ def load_nvvh_for_day(data_dir, month, year, day):
                 return {}
             ws = wb[sheet_name]
             vals = {}
-            for row in ws.iter_rows(min_row=49, max_row=49, values_only=False):
-                for ca_key, col_idx in ca_cols.items():
+            for row in ws.iter_rows(min_row=row_num, max_row=row_num, values_only=False):
+                for ca_key, col_idx in col_indices.items():
                     if col_idx < len(row):
                         vals[ca_key] = row[col_idx].value
             wb.close()
@@ -232,10 +234,13 @@ def load_nvvh_for_day(data_dir, month, year, day):
             print(f"Warning: Could not read NVVH from {filepath}: {e}")
             return {}
 
+    # PL columns: AH=33, AL=37, AO=40 (0-based), row 49
+    pl_ca_cols = {"ca1": 33, "ca2": 37, "ca3": 40}
+
     # PL1 file — for PL1-PL5 (3 operators for 5 machines)
     pl1_file = _find_pl_file(data_dir, "PL1", month, year)
     if pl1_file:
-        vals = _read_nvvh_row49(pl1_file)
+        vals = _read_nvvh_row(pl1_file, 49, pl_ca_cols)
         for ca_key in ["ca1", "ca2", "ca3"]:
             raw = vals.get(ca_key)
             if raw:
@@ -245,10 +250,34 @@ def load_nvvh_for_day(data_dir, month, year, day):
     # PL6 file — for PL6-PL7 (1 operator for 2 machines)
     pl6_file = _find_pl_file(data_dir, "PL6", month, year)
     if pl6_file:
-        vals = _read_nvvh_row49(pl6_file)
+        vals = _read_nvvh_row(pl6_file, 49, pl_ca_cols)
         for ca_key in ["ca1", "ca2", "ca3"]:
             raw = vals.get(ca_key)
             result["pl6_7"][ca_key] = str(raw).strip() if raw else ""
+
+    # MIXER file — row 85, columns M(12), P(15), S(18) (0-based)
+    mixer_ca_cols = {"ca1": 12, "ca2": 15, "ca3": 18}
+    mixer_file = _find_pl_file(data_dir, "MIXER T", month, year)
+    if not mixer_file:
+        # Try alternate naming: MIXER T{month}.{year}.xlsx
+        import glob as _glob
+        for pattern in [f"MIXER*T{month}.{year}.*", f"MIXER*{month}.{year}.*"]:
+            files = _glob.glob(os.path.join(data_dir, "**", pattern), recursive=True)
+            files = [f for f in files if not os.path.basename(f).startswith('~$')]
+            if files:
+                mixer_file = files[0]
+                break
+    if mixer_file:
+        vals = _read_nvvh_row(mixer_file, 85, mixer_ca_cols)
+        for ca_key in ["ca1", "ca2", "ca3"]:
+            raw = vals.get(ca_key)
+            if raw:
+                name_str = str(raw).strip()
+                # Strip "CA1:", "CA2:", "CA 3:" prefix
+                name_str = re.sub(r'^CA\s*\d\s*[:：]\s*', '', name_str)
+                # Split by + delimiter
+                parts = re.split(r'[+]', name_str)
+                result["mixer"][ca_key] = ','.join(n.strip() for n in parts if n.strip())
 
     return result
 
@@ -309,19 +338,36 @@ def _read_loss_sheet(filepath, day):
 
 
 def load_loss_for_day(data_dir, month, year, day):
-    """Read LOSS sheets from all PL files (PL1-PL7).
+    """Read LOSS sheets from all PL files (PL1-PL7) and MIXER.
 
     Each PL file has its own LOSS sheet with per-machine data.
-    Returns: {"1": [...], "2": [...], ..., "7": [...]}
+    MIXER LOSS uses pl_num=0.
+    Returns: {"0": [...], "1": [...], "2": [...], ..., "7": [...]}
     """
     result = {}
 
+    # PL1-PL7
     for pl_num in range(1, 8):
         pl_file = _find_pl_file(data_dir, f"PL{pl_num}", month, year)
         if pl_file:
             result[str(pl_num)] = _read_loss_sheet(pl_file, day)
         else:
             result[str(pl_num)] = []
+
+    # MIXER (pl_num=0)
+    mixer_file = _find_pl_file(data_dir, "MIXER T", month, year)
+    if not mixer_file:
+        import glob as _glob
+        for pattern in [f"MIXER*T{month}.{year}.*", f"MIXER*{month}.{year}.*"]:
+            files = _glob.glob(os.path.join(data_dir, "**", pattern), recursive=True)
+            files = [f for f in files if not os.path.basename(f).startswith('~$')]
+            if files:
+                mixer_file = files[0]
+                break
+    if mixer_file:
+        result["0"] = _read_loss_sheet(mixer_file, day)
+    else:
+        result["0"] = []
 
     return result
 

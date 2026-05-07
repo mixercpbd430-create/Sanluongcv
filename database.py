@@ -719,6 +719,14 @@ def import_nvvh_loss_from_excel(source_dir):
                                 VALUES (?, ?, ?, ?, ?, ?)
                             """, (year, month, day, ca, 'pl6_7', name67))
                             nvvh_count += 1
+                        # MIXER name
+                        name_mixer = nvvh.get('mixer', {}).get(ca, '')
+                        if name_mixer:
+                            _execute(conn, """
+                                INSERT OR REPLACE INTO nvvh (year, month, day, ca, pl_group, names)
+                                VALUES (?, ?, ?, ?, ?, ?)
+                            """, (year, month, day, ca, 'mixer', name_mixer))
+                            nvvh_count += 1
             except Exception as e:
                 pass  # Skip days that don't exist in Excel
 
