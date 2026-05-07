@@ -163,11 +163,6 @@ def init_db(data_dir=None):
                 display_name TEXT NOT NULL
             )
         """)
-        # Clean up orphaned sequences from any previous partial deploy
-        c.execute("DROP SEQUENCE IF EXISTS nvvh_id_seq CASCADE")
-        c.execute("DROP SEQUENCE IF EXISTS loss_notes_id_seq CASCADE")
-        c.execute("DROP TABLE IF EXISTS nvvh CASCADE")
-        c.execute("DROP TABLE IF EXISTS loss_notes CASCADE")
         c.execute("""
             CREATE TABLE IF NOT EXISTS nvvh (
                 id SERIAL PRIMARY KEY,
