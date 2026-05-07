@@ -152,11 +152,17 @@ function renderNVVH(nvvh) {
     // PL6-7: 1 operator → both PL6 and PL7
 
     cas.forEach(ca => {
-        // Clear all NVVH cells for this Ca
+        // Clear all NVVH cells for this Ca (including Mixer)
+        const mixerEl = document.getElementById(`nvvh-${ca}-mixer`);
+        if (mixerEl) mixerEl.textContent = '';
         for (let i = 1; i <= 7; i++) {
             const el = document.getElementById(`nvvh-${ca}-pl${i}`);
             if (el) el.textContent = '';
         }
+
+        // Mixer NVVH
+        const mixerName = nvvh.mixer ? (nvvh.mixer[ca] || '') : '';
+        if (mixerEl && mixerName) mixerEl.textContent = mixerName;
 
         // PL1-5: split names to PL1, PL3, PL5
         const names15 = nvvh.pl1_5 ? (nvvh.pl1_5[ca] || []) : [];
@@ -177,28 +183,28 @@ function renderNVVH(nvvh) {
 }
 
 function renderLossNotes(lossNotes) {
-    // Clear all note, time, and downtime cells
+    // Clear all note, time, and downtime cells (0=Mixer, 1-7=PL)
     ['ca1', 'ca2', 'ca3'].forEach(ca => {
-        for (let i = 1; i <= 7; i++) {
+        for (let i = 0; i <= 7; i++) {
             const el = document.getElementById(`note-${ca}-${i}`);
             if (el) el.textContent = '';
             const timeEl = document.getElementById(`time-${ca}-${i}`);
             if (timeEl) timeEl.textContent = '';
         }
     });
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 0; i <= 7; i++) {
         const dtEl = document.getElementById(`dt-val-${i}`);
         if (dtEl) dtEl.textContent = '-';
     }
 
     if (!lossNotes) return;
 
-    // Track daily total per PL (sum of all CAs)
+    // Track daily total per machine (0=Mixer, 1-7=PL)
     const dailyTotals = {};
-    for (let pl = 1; pl <= 7; pl++) dailyTotals[pl] = 0;
+    for (let pl = 0; pl <= 7; pl++) dailyTotals[pl] = 0;
 
-    // lossNotes = {"1": [...], "2": [...], ..., "7": [...]}
-    for (let pl = 1; pl <= 7; pl++) {
+    // lossNotes = {"0": [...], "1": [...], ..., "7": [...]}
+    for (let pl = 0; pl <= 7; pl++) {
         const entries = lossNotes[String(pl)] || [];
         if (entries.length === 0) continue;
 
@@ -228,7 +234,7 @@ function renderLossNotes(lossNotes) {
     }
 
     // Display daily totals per machine
-    for (let pl = 1; pl <= 7; pl++) {
+    for (let pl = 0; pl <= 7; pl++) {
         const dtEl = document.getElementById(`dt-val-${pl}`);
         if (dtEl) {
             dtEl.textContent = dailyTotals[pl] > 0 ? fmtTotalTime(dailyTotals[pl]) : '-';

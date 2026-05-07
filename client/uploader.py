@@ -196,14 +196,16 @@ def parse_nvvh_from_file(filepath, month, year):
     """
     filename = os.path.basename(filepath).upper()
     # Determine pl_group
-    if any(f"PL{i}" in filename for i in range(1, 6)):
+    if 'MIXER' in filename:
+        pl_group = "mixer"
+    elif any(f"PL{i}" in filename for i in range(1, 6)):
         pl_group = "pl1_5"
     elif any(f"PL{i}" in filename for i in range(6, 8)):
         pl_group = "pl6_7"
     else:
         return []
 
-    # Only read from PL1 (for pl1_5 group) or PL6 (for pl6_7 group)
+    # Only read from PL1 (for pl1_5 group), PL6 (for pl6_7 group), or MIXER
     if pl_group == "pl1_5" and "PL1 " not in filename and "PL1." not in filename:
         return []
     if pl_group == "pl6_7" and "PL6 " not in filename and "PL6." not in filename:
@@ -248,11 +250,14 @@ def parse_loss_from_file(filepath, month, year):
     Returns list of {year, month, day, pl_num, code, description, ca1_count, ...}.
     """
     filename = os.path.basename(filepath).upper()
-    # Extract PL number from filename
-    pl_match = re.search(r'PL(\d+)', filename)
-    if not pl_match:
-        return []
-    pl_num = int(pl_match.group(1))
+    # Extract PL number or detect MIXER
+    if 'MIXER' in filename:
+        pl_num = 0  # Mixer uses pl_num=0
+    else:
+        pl_match = re.search(r'PL(\d+)', filename)
+        if not pl_match:
+            return []
+        pl_num = int(pl_match.group(1))
 
     entries = []
     try:
@@ -333,14 +338,14 @@ def read_all_files(folder, username):
                 total = sum(e["total"] for e in result)
                 file_results.append(f"✅ {label}: {len(result)} ngày, {total:,.1f} tấn")
 
-            # Parse NVVH + LOSS for PL files
-            if type_key == "PL":
+            # Parse NVVH + LOSS for PL and MIXER files
+            if type_key == "PL" or type_key == "MIXER":
                 fn = os.path.basename(filepath)
                 match = re.match(config["regex"], fn, re.IGNORECASE)
                 if match:
                     month = int(match.group(2))
                     year = int(match.group(3))
-                    # NVVH (only from PL1 and PL6)
+                    # NVVH (from PL1, PL6, or MIXER)
                     nvvh = parse_nvvh_from_file(filepath, month, year)
                     if nvvh:
                         nvvh_entries.extend(nvvh)

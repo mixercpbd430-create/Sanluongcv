@@ -505,6 +505,18 @@
     color: #15803d;
 }
 
+/* Mixer row in NVVH table */
+.nvvh-mixer {
+    border-top: 3px solid #d97706 !important;
+}
+
+.mixer-machine {
+    background: #fffbeb !important;
+    color: #b45309 !important;
+    font-weight: 800 !important;
+    font-size: 1.3rem !important;
+}
+
 /* Capture mode for NVVH table */
 .nvvh-table.capture-mode,
 .nvvh-table.capture-mode th,
@@ -547,8 +559,21 @@
 
 .downtime-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(8, 1fr);
     gap: 8px;
+}
+
+.downtime-mixer {
+    background: #fffbeb;
+    border-color: #f59e0b;
+}
+
+.downtime-mixer .downtime-label {
+    color: #b45309;
+}
+
+.downtime-mixer .downtime-value {
+    color: #92400e;
 }
 
 .downtime-item {

@@ -758,6 +758,7 @@ def get_nvvh_for_day(year, month, day):
     result = {
         "pl1_5": {"ca1": [], "ca2": [], "ca3": []},
         "pl6_7": {"ca1": "", "ca2": "", "ca3": ""},
+        "mixer": {"ca1": "", "ca2": "", "ca3": ""},
     }
     for row in rows:
         ca = row['ca']
@@ -767,6 +768,8 @@ def get_nvvh_for_day(year, month, day):
             result['pl1_5'][ca] = [n.strip() for n in names.split(',') if n.strip()]
         elif group == 'pl6_7':
             result['pl6_7'][ca] = names
+        elif group == 'mixer':
+            result['mixer'][ca] = names
 
     return result
 
@@ -784,7 +787,7 @@ def get_loss_for_day(year, month, day):
     rows = _fetchall(cursor)
     conn.close()
 
-    result = {str(i): [] for i in range(1, 8)}
+    result = {str(i): [] for i in range(0, 8)}  # 0=Mixer, 1-7=PL
     for row in rows:
         pl_key = str(row['pl_num'])
         if pl_key in result:
