@@ -177,11 +177,13 @@ function renderNVVH(nvvh) {
 }
 
 function renderLossNotes(lossNotes) {
-    // Clear all note cells
+    // Clear all note and time cells
     ['ca1', 'ca2', 'ca3'].forEach(ca => {
         for (let i = 1; i <= 7; i++) {
             const el = document.getElementById(`note-${ca}-${i}`);
             if (el) el.textContent = '';
+            const timeEl = document.getElementById(`time-${ca}-${i}`);
+            if (timeEl) timeEl.textContent = '';
         }
     });
 
@@ -196,15 +198,23 @@ function renderLossNotes(lossNotes) {
         ['ca1', 'ca2', 'ca3'].forEach(ca => {
             // Filter entries that have data for this Ca
             const caEntries = [];
+            let totalTime = 0;
             entries.forEach(loss => {
                 if (loss[`${ca}_count`] > 0 || loss[`${ca}_time`] > 0) {
                     caEntries.push(fmtLoss(loss, ca));
+                    totalTime += (loss[`${ca}_time`] || 0);
                 }
             });
 
             if (caEntries.length > 0) {
                 const el = document.getElementById(`note-${ca}-${pl}`);
                 if (el) el.textContent = caEntries.join(' | ');
+            }
+
+            // Display total time
+            if (totalTime > 0) {
+                const timeEl = document.getElementById(`time-${ca}-${pl}`);
+                if (timeEl) timeEl.textContent = fmtTotalTime(totalTime);
             }
         });
     }
@@ -217,6 +227,15 @@ function fmtLoss(loss, caKey) {
     if (count > 0) parts.push(`${count} lần`);
     if (time > 0) parts.push(`${time}'`);
     return parts.join(', ');
+}
+
+function fmtTotalTime(minutes) {
+    if (minutes <= 0) return '';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h > 0 && m > 0) return `${h}h${m}'`;
+    if (h > 0) return `${h}h`;
+    return `${m}'`;
 }
 
 // ---- Auto-save SALE/STOCK ----

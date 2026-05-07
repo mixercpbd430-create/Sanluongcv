@@ -455,6 +455,16 @@
 .nvvh-col-machine { width: 80px; }
 .nvvh-col-name { width: 160px; }
 .nvvh-col-note { min-width: 300px; }
+.nvvh-col-time { width: 120px; }
+
+.nvvh-time {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #b91c1c;
+    background: #fef2f2;
+    white-space: nowrap;
+}
 
 .nvvh-ca-cell {
     text-align: center;
