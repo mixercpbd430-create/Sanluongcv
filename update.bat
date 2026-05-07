@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+setlocal enabledelayedexpansion
 title Update Data - San Luong App
 
 echo ============================================================
@@ -19,16 +20,14 @@ if not exist "Update" (
 set FOLDER_COUNT=0
 for /d %%d in ("Update\*") do set /a FOLDER_COUNT+=1
 
-:: Count Excel files recursively (including subfolders)
+:: Count Excel files recursively (including subfolders), skip ~$ temp files
 set COUNT=0
 for /r "Update" %%f in (*.xlsx *.xlsm) do (
     set "fname=%%~nxf"
-    setlocal enabledelayedexpansion
     if not "!fname:~0,2!"=="~$" set /a COUNT+=1
-    endlocal
 )
 
-if %COUNT%==0 (
+if !COUNT!==0 (
     echo.
     echo [!] Khong tim thay file Excel nao trong folder Update\
     echo     Hay copy file PL*.xlsx, MIXER*.xlsx vao:
@@ -45,7 +44,7 @@ if %COUNT%==0 (
 )
 
 echo.
-echo [*] Tim thay %COUNT% file Excel trong %FOLDER_COUNT% subfolder
+echo [*] Tim thay !COUNT! file Excel trong !FOLDER_COUNT! subfolder
 echo.
 
 :: Check if venv exists, activate it
