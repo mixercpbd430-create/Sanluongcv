@@ -177,7 +177,7 @@ function renderNVVH(nvvh) {
 }
 
 function renderLossNotes(lossNotes) {
-    // Clear all note and time cells
+    // Clear all note, time, and downtime cells
     ['ca1', 'ca2', 'ca3'].forEach(ca => {
         for (let i = 1; i <= 7; i++) {
             const el = document.getElementById(`note-${ca}-${i}`);
@@ -186,17 +186,23 @@ function renderLossNotes(lossNotes) {
             if (timeEl) timeEl.textContent = '';
         }
     });
+    for (let i = 1; i <= 7; i++) {
+        const dtEl = document.getElementById(`dt-val-${i}`);
+        if (dtEl) dtEl.textContent = '-';
+    }
 
     if (!lossNotes) return;
 
+    // Track daily total per PL (sum of all CAs)
+    const dailyTotals = {};
+    for (let pl = 1; pl <= 7; pl++) dailyTotals[pl] = 0;
+
     // lossNotes = {"1": [...], "2": [...], ..., "7": [...]}
-    // Each PL has its own LOSS entries → fill into its own GHI CHÚ cell
     for (let pl = 1; pl <= 7; pl++) {
         const entries = lossNotes[String(pl)] || [];
         if (entries.length === 0) continue;
 
         ['ca1', 'ca2', 'ca3'].forEach(ca => {
-            // Filter entries that have data for this Ca
             const caEntries = [];
             let totalTime = 0;
             entries.forEach(loss => {
@@ -211,12 +217,22 @@ function renderLossNotes(lossNotes) {
                 if (el) el.textContent = caEntries.join(' | ');
             }
 
-            // Display total time
+            // Display per-CA time
             if (totalTime > 0) {
                 const timeEl = document.getElementById(`time-${ca}-${pl}`);
                 if (timeEl) timeEl.textContent = fmtTotalTime(totalTime);
             }
+
+            dailyTotals[pl] += totalTime;
         });
+    }
+
+    // Display daily totals per machine
+    for (let pl = 1; pl <= 7; pl++) {
+        const dtEl = document.getElementById(`dt-val-${pl}`);
+        if (dtEl) {
+            dtEl.textContent = dailyTotals[pl] > 0 ? fmtTotalTime(dailyTotals[pl]) : '-';
+        }
     }
 }
 

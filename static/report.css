@@ -528,3 +528,62 @@
         font-size: 0.7rem;
     }
 }
+
+/* --- Machine Downtime Summary --- */
+.downtime-section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 3px solid #333;
+}
+
+.downtime-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-align: center;
+    margin-bottom: 16px;
+    letter-spacing: 0.03em;
+}
+
+.downtime-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.downtime-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+    background: #fef2f2;
+    border: 2px solid #fca5a5;
+    border-radius: 8px;
+}
+
+.downtime-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0369a1;
+    margin-bottom: 4px;
+}
+
+.downtime-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #b91c1c;
+}
+
+@media (max-width: 768px) {
+    .downtime-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .downtime-label {
+        font-size: 0.85rem;
+    }
+
+    .downtime-value {
+        font-size: 1rem;
+    }
+}
