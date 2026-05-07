@@ -71,6 +71,7 @@
         <!-- Report Table -->
         <section class="report-section" id="report-section">
             <div class="report-card glass-card">
+                <div id="capture-area">
                 <div class="report-header-bar">
                     <h2 id="report-title">SẢN LƯỢNG THÁNG</h2>
                     <button class="btn-capture" id="btn-capture" onclick="captureReport()">
@@ -189,6 +190,7 @@
                         </tbody>
                     </table>
                 </div>
+                </div><!-- end #capture-area -->
 
                 <!-- NVVH + GHI CHÚ Table -->
                 <div class="nvvh-section" id="nvvh-section">
@@ -253,7 +255,7 @@
         txt.textContent = 'Đang chụp...';
 
         try {
-            const el = document.querySelector('.report-card');
+            const el = document.getElementById('capture-area');
             const table = document.getElementById('report-table');
             // Hide the capture button during screenshot
             btn.style.visibility = 'hidden';
