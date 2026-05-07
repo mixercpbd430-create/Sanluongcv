@@ -665,27 +665,30 @@ def get_db_stats(data_dir):
 # ─── NVVH + LOSS DB functions ──────────────────────────────
 
 def import_nvvh_loss_from_excel(source_dir):
-    """Import NVVH and LOSS data from PL Excel files into database."""
+    """Import NVVH and LOSS data from PL and MIXER Excel files into database."""
     from data_loader import load_nvvh_for_day, load_loss_for_day, _find_pl_file
     import glob
     import re as regex
 
-    # Detect which months are available from PL files
-    pl_files = []
-    for pattern in ["PL1 *.xls*", "PL1 *.xls*"]:
-        pl_files.extend(glob.glob(os.path.join(source_dir, pattern)))
-
-    if not pl_files:
-        print("⚠️ No PL files found for NVVH/LOSS import")
-        return
-
-    # Extract month/year from filenames like "PL1 3.2026.xlsx"
+    # Detect which months are available from PL and MIXER files (recursive)
     months_found = set()
-    for f in glob.glob(os.path.join(source_dir, "PL* *.xls*")):
-        basename = os.path.basename(f)
-        match = regex.search(r'(\d+)\.(\d{4})', basename)
-        if match:
-            months_found.add((int(match.group(1)), int(match.group(2))))
+    for pattern in ["PL* *.xls*", "MIXER*.xls*"]:
+        for f in glob.glob(os.path.join(source_dir, "**", pattern), recursive=True):
+            basename = os.path.basename(f)
+            if basename.startswith('~$'):
+                continue
+            match = regex.search(r'(\d+)\.(\d{4})', basename)
+            if match:
+                months_found.add((int(match.group(1)), int(match.group(2))))
+    # Also check flat directory
+    for pattern in ["PL* *.xls*", "MIXER*.xls*"]:
+        for f in glob.glob(os.path.join(source_dir, pattern)):
+            basename = os.path.basename(f)
+            if basename.startswith('~$'):
+                continue
+            match = regex.search(r'(\d+)\.(\d{4})', basename)
+            if match:
+                months_found.add((int(match.group(1)), int(match.group(2))))
 
     conn = _get_conn()
     nvvh_count = 0

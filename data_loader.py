@@ -134,10 +134,17 @@ def load_all_data(data_dir):
     all_entries = []
 
     for config_key, config in FILE_CONFIGS.items():
-        pattern = os.path.join(data_dir, config["pattern"])
-        files = sorted(glob.glob(pattern))
+        # Search in data_dir and all subdirectories
+        pattern_flat = os.path.join(data_dir, config["pattern"])
+        pattern_sub = os.path.join(data_dir, "**", config["pattern"])
+        files = sorted(set(
+            glob.glob(pattern_flat) + glob.glob(pattern_sub, recursive=True)
+        ))
 
         for filepath in files:
+            # Skip temp files
+            if os.path.basename(filepath).startswith('~$'):
+                continue
             entry = _parse_file(filepath, config)
             if entry:
                 all_entries.append(entry)
@@ -170,16 +177,17 @@ def get_latest_month_data(data_dir):
 
 def _find_pl_file(data_dir, pl_prefix, month, year):
     """Find the Excel file for a PL line (e.g., PL1 3.2026.xlsx).
-    Searches in data_dir first, then in data_dir/Update subfolder.
+    Searches in data_dir, then subdirectories recursively.
     """
     name_pattern = f"{pl_prefix} {month}.{year}.xls*"
     # Search in data_dir first
     files = glob.glob(os.path.join(data_dir, name_pattern))
     if files:
         return files[0]
-    # Then search in Update subfolder
-    update_dir = os.path.join(data_dir, "Update")
-    files = glob.glob(os.path.join(update_dir, name_pattern))
+    # Then search recursively in all subdirectories
+    files = glob.glob(os.path.join(data_dir, "**", name_pattern), recursive=True)
+    # Filter out temp files
+    files = [f for f in files if not os.path.basename(f).startswith('~$')]
     return files[0] if files else None
 
 
