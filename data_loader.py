@@ -282,12 +282,16 @@ def load_nvvh_for_day(data_dir, month, year, day):
     return result
 
 
-def _read_loss_sheet(filepath, day):
+def _read_loss_sheet(filepath, day, is_mixer=False):
     """Read LOSS sheet from an Excel file for a specific day.
     Uses read_only mode for performance (files are ~2.5MB each).
+    MIXER time values are already in minutes; PL values are in hours.
     Returns list of loss entries with data > 0.
     """
     import openpyxl
+
+    # MIXER time is already in minutes; PL time is in hours → convert to minutes
+    time_mult = 1 if is_mixer else 60
 
     try:
         wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
@@ -323,11 +327,11 @@ def _read_loss_sheet(filepath, day):
                     "code": str(code),
                     "desc": str(desc) if desc else "",
                     "ca1_count": int(ca1_count),
-                    "ca1_time": round(ca1_time * 60),
+                    "ca1_time": round(ca1_time * time_mult),
                     "ca2_count": int(ca2_count),
-                    "ca2_time": round(ca2_time * 60),
+                    "ca2_time": round(ca2_time * time_mult),
                     "ca3_count": int(ca3_count),
-                    "ca3_time": round(ca3_time * 60),
+                    "ca3_time": round(ca3_time * time_mult),
                 })
 
         wb.close()
@@ -365,7 +369,7 @@ def load_loss_for_day(data_dir, month, year, day):
                 mixer_file = files[0]
                 break
     if mixer_file:
-        result["0"] = _read_loss_sheet(mixer_file, day)
+        result["0"] = _read_loss_sheet(mixer_file, day, is_mixer=True)
     else:
         result["0"] = []
 

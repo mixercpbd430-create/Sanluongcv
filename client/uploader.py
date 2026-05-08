@@ -307,16 +307,18 @@ def parse_loss_from_file(filepath, month, year):
                         vals.append(0)
 
                 if any(v > 0 for v in vals):
+                    # MIXER time is already in minutes; PL time is in hours → convert to minutes
+                    time_mult = 1 if pl_num == 0 else 60
                     entries.append({
                         "year": year, "month": month,
                         "day": day, "pl_num": pl_num,
                         "code": str(code), "description": desc,
                         "ca1_count": int(vals[0]),
-                        "ca1_time": round(vals[1] * 60),
+                        "ca1_time": round(vals[1] * time_mult),
                         "ca2_count": int(vals[2]),
-                        "ca2_time": round(vals[3] * 60),
+                        "ca2_time": round(vals[3] * time_mult),
                         "ca3_count": int(vals[4]),
-                        "ca3_time": round(vals[5] * 60),
+                        "ca3_time": round(vals[5] * time_mult),
                     })
     except Exception as e:
         print(f"⚠️ LOSS parse error ({filepath}): {e}")
