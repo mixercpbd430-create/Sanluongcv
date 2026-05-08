@@ -866,66 +866,69 @@ def get_loss_for_day(year, month, day):
 
 def save_khuon_data(data_dir, username, khuon_entries):
     """Save khuon tracking data uploaded from client.
-    khuon_entries: list of {
-        pl_num, year, month, seri, thong_so,
-        days: {1: val, 2: val, ...},
-        tong_thang, ton_truoc, tong
-    }
+    Uses batch INSERT for speed (especially on cloud PostgreSQL).
     """
     conn = _get_conn()
     saved = 0
     errors = []
 
+    day_cols = ', '.join(f'd{d}' for d in range(1, 32))
+    all_cols = f"pl_num, year, month, seri, thong_so, {day_cols}, tong_thang, ton_truoc, tong"
+
+    # Prepare all rows
+    rows = []
     for k in khuon_entries:
         try:
-            pl_num = int(k["pl_num"])
-            year = int(k["year"])
-            month = int(k["month"])
-            seri = str(k["seri"]).strip()
-            thong_so = str(k.get("thong_so", "")).strip()
             days = k.get("days", {})
-
-            # Build day values d1..d31
             day_vals = [float(days.get(str(d), days.get(d, 0)) or 0) for d in range(1, 32)]
-            tong_thang = float(k.get("tong_thang", 0) or 0)
-            ton_truoc = float(k.get("ton_truoc", 0) or 0)
-            tong = float(k.get("tong", 0) or 0)
-
-            params = (pl_num, year, month, seri, thong_so,
-                      *day_vals, tong_thang, ton_truoc, tong)
-
-            day_cols = ', '.join(f'd{d}' for d in range(1, 32))
-            day_update_pg = ', '.join(f'd{d}=EXCLUDED.d{d}' for d in range(1, 32))
-
-            if _use_postgres():
-                placeholders = ', '.join(['%s'] * len(params))
-                c = conn.cursor()
-                c.execute(f"""
-                    INSERT INTO khuon_tracking
-                    (pl_num, year, month, seri, thong_so,
-                     {day_cols}, tong_thang, ton_truoc, tong)
-                    VALUES ({placeholders})
-                    ON CONFLICT (pl_num, year, month, seri)
-                    DO UPDATE SET thong_so=EXCLUDED.thong_so,
-                        {day_update_pg},
-                        tong_thang=EXCLUDED.tong_thang,
-                        ton_truoc=EXCLUDED.ton_truoc,
-                        tong=EXCLUDED.tong
-                """, params)
-            else:
-                placeholders = ', '.join(['?'] * len(params))
-                _execute(conn, f"""
-                    INSERT OR REPLACE INTO khuon_tracking
-                    (pl_num, year, month, seri, thong_so,
-                     {day_cols}, tong_thang, ton_truoc, tong)
-                    VALUES ({placeholders})
-                """, params)
-            saved += 1
+            row = (
+                int(k["pl_num"]), int(k["year"]), int(k["month"]),
+                str(k["seri"]).strip(),
+                str(k.get("thong_so", "")).strip(),
+                *day_vals,
+                float(k.get("tong_thang", 0) or 0),
+                float(k.get("ton_truoc", 0) or 0),
+                float(k.get("tong", 0) or 0),
+            )
+            rows.append(row)
         except Exception as e:
             errors.append(f"PL{k.get('pl_num')} {k.get('seri')}: {str(e)}")
 
-    conn.commit()
-    conn.close()
+    if not rows:
+        conn.close()
+        return {"status": "ok", "khuon_count": 0, "errors": errors[:10]}
+
+    try:
+        if _use_postgres():
+            day_update = ', '.join(f'd{d}=EXCLUDED.d{d}' for d in range(1, 32))
+            sql = f"""
+                INSERT INTO khuon_tracking ({all_cols})
+                VALUES %s
+                ON CONFLICT (pl_num, year, month, seri)
+                DO UPDATE SET thong_so=EXCLUDED.thong_so,
+                    {day_update},
+                    tong_thang=EXCLUDED.tong_thang,
+                    ton_truoc=EXCLUDED.ton_truoc,
+                    tong=EXCLUDED.tong
+            """
+            c = conn.cursor()
+            psycopg2.extras.execute_values(c, sql, rows, page_size=100)
+            saved = len(rows)
+        else:
+            placeholders = ', '.join(['?'] * len(rows[0]))
+            sql = f"""
+                INSERT OR REPLACE INTO khuon_tracking ({all_cols})
+                VALUES ({placeholders})
+            """
+            c = conn.cursor()
+            c.executemany(sql, rows)
+            saved = len(rows)
+
+        conn.commit()
+    except Exception as e:
+        errors.append(f"Batch insert error: {str(e)}")
+    finally:
+        conn.close()
 
     return {
         "status": "ok",
