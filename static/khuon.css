@@ -1,0 +1,456 @@
+/* ============================================
+   THEO DÕI KHUÔN - Styles
+   Dark Theme matching main app
+   ============================================ */
+
+/* --- Page-specific Layout --- */
+.khuon-page .container {
+    max-width: 1800px;
+}
+
+/* --- View Tabs (Theo ngày / Theo tháng) --- */
+.view-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    margin-bottom: 24px;
+    width: fit-content;
+}
+
+.view-tab {
+    padding: 12px 28px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: var(--transition);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.view-tab:hover {
+    background: var(--glass-hover);
+    color: var(--text-primary);
+}
+
+.view-tab.active {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: var(--shadow-glow-indigo);
+}
+
+.view-tab svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* --- PL Filter Tabs --- */
+.pl-filter {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 4px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    margin-bottom: 20px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.pl-filter::-webkit-scrollbar {
+    display: none;
+}
+
+.pl-tab {
+    flex-shrink: 0;
+    padding: 8px 20px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.pl-tab:hover {
+    background: var(--glass-hover);
+    color: var(--text-primary);
+}
+
+.pl-tab.active {
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--accent-indigo);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.pl-tab .count-badge {
+    display: inline-block;
+    min-width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    background: rgba(99, 102, 241, 0.15);
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-left: 6px;
+    padding: 0 6px;
+    color: var(--accent-indigo);
+}
+
+.pl-tab.active .count-badge {
+    background: rgba(99, 102, 241, 0.3);
+    color: white;
+}
+
+/* --- Stats Row --- */
+.stats-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 16px 24px;
+    flex: 1;
+    min-width: 160px;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--stat-accent, var(--accent-indigo));
+    opacity: 0.8;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-card .stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.stat-card .stat-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+}
+
+.stat-card .stat-unit {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
+/* --- Data Table Container --- */
+.khuon-table-wrapper {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    overflow: hidden;
+}
+
+.khuon-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.khuon-table-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.khuon-table-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 70vh;
+    scrollbar-width: thin;
+    scrollbar-color: var(--glass-hover) transparent;
+}
+
+/* --- Khuon Table --- */
+.khuon-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8rem;
+}
+
+.khuon-table thead th {
+    text-align: center;
+    padding: 10px 6px;
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--glass-border);
+    background: rgba(15, 23, 42, 0.95);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.khuon-table thead th.sticky-col {
+    position: sticky;
+    z-index: 20;
+    background: rgba(15, 23, 42, 0.98);
+}
+
+.khuon-table thead th.col-stt {
+    left: 0;
+    min-width: 40px;
+}
+
+.khuon-table thead th.col-seri {
+    left: 40px;
+    min-width: 140px;
+    text-align: left;
+}
+
+.khuon-table thead th.col-khuon {
+    left: 180px;
+    min-width: 90px;
+    text-align: left;
+}
+
+.khuon-table thead th.col-day {
+    min-width: 50px;
+}
+
+.khuon-table thead th.col-summary {
+    min-width: 70px;
+    color: var(--accent-amber);
+}
+
+/* --- Table Body --- */
+.khuon-table tbody td {
+    padding: 7px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    transition: background 0.15s ease;
+}
+
+.khuon-table tbody td.sticky-col {
+    position: sticky;
+    background: rgba(15, 23, 42, 0.95);
+    z-index: 5;
+}
+
+.khuon-table tbody td.col-stt {
+    left: 0;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.khuon-table tbody td.col-seri {
+    left: 40px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.khuon-table tbody td.col-khuon {
+    left: 180px;
+    text-align: left;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.khuon-table tbody td.col-pl {
+    text-align: center;
+    font-weight: 600;
+    color: var(--accent-indigo);
+}
+
+.khuon-table tbody td.has-value {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--accent-emerald);
+    font-weight: 600;
+}
+
+.khuon-table tbody td.summary-val {
+    font-weight: 700;
+}
+
+.khuon-table tbody td.tong-thang {
+    color: var(--accent-cyan);
+}
+
+.khuon-table tbody td.ton-truoc {
+    color: var(--accent-amber);
+}
+
+.khuon-table tbody td.tong-all {
+    color: var(--accent-rose);
+}
+
+/* Row hover */
+.khuon-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.khuon-table tbody tr:hover {
+    background: var(--glass-hover);
+}
+
+.khuon-table tbody tr:hover td.sticky-col {
+    background: rgba(30, 41, 59, 0.95);
+}
+
+/* Row zero (no production this month) */
+.khuon-table tbody tr.row-zero {
+    opacity: 0.4;
+}
+
+.khuon-table tbody tr.row-zero.hidden-zero {
+    display: none;
+}
+
+/* --- Footer totals row --- */
+.khuon-table tfoot td {
+    padding: 10px 6px;
+    font-weight: 800;
+    font-size: 0.82rem;
+    border-top: 2px solid var(--accent-indigo);
+    background: rgba(99, 102, 241, 0.05);
+    text-align: center;
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+}
+
+.khuon-table tfoot td.sticky-col {
+    z-index: 15;
+    background: rgba(15, 23, 42, 0.98);
+}
+
+.khuon-table tfoot td.has-value {
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--accent-cyan);
+}
+
+/* --- Toggle Controls --- */
+.khuon-controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* --- View sections --- */
+.view-section {
+    display: none;
+}
+
+.view-section.active {
+    display: block;
+    animation: fadeInUp 0.4s ease forwards;
+}
+
+/* --- Loading spinner --- */
+.khuon-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    gap: 12px;
+    font-size: 0.9rem;
+}
+
+.khuon-loading .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(99, 102, 241, 0.2);
+    border-top-color: var(--accent-indigo);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .view-tabs {
+        width: 100%;
+    }
+
+    .view-tab {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 16px;
+        font-size: 0.82rem;
+    }
+
+    .stats-row {
+        gap: 10px;
+    }
+
+    .stat-card {
+        min-width: 120px;
+        padding: 12px 16px;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.1rem;
+    }
+
+    .khuon-table {
+        font-size: 0.72rem;
+    }
+
+    .khuon-table thead th,
+    .khuon-table tbody td,
+    .khuon-table tfoot td {
+        padding: 6px 4px;
+    }
+
+    .khuon-table thead th.col-seri {
+        min-width: 110px;
+    }
+}

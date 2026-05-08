@@ -14,7 +14,8 @@ from database import (init_db, import_from_excel, import_month_from_excel,
                       load_all_from_db, get_db_stats,
                       save_manual_input, get_manual_inputs,
                       get_monthly_sale_total, save_uploaded_data,
-                      authenticate, change_password, get_all_users)
+                      authenticate, change_password, get_all_users,
+                      save_khuon_data, get_khuon_data, get_khuon_yearly)
 
 app = Flask(__name__)
 app.secret_key = "cpvn-sanluong-2026-secret"
@@ -126,6 +127,31 @@ def api_upload_data():
     # Invalidate cache so dashboard shows new data
     invalidate_cache()
 
+    return jsonify(result)
+
+
+@app.route("/api/upload-khuon", methods=["POST"])
+def api_upload_khuon():
+    """Receive khuon tracking data from client uploader.
+    JSON body: {username, password, khuon_entries: [...]}
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "No JSON data"}), 400
+
+    username = data.get("username", "").strip().lower()
+    password = data.get("password", "").strip()
+    khuon_entries = data.get("khuon_entries", [])
+
+    # Authenticate
+    user = authenticate(DATA_DIR, username, password)
+    if not user:
+        return jsonify({"status": "error", "message": "Sai tài khoản hoặc mật khẩu"}), 401
+
+    if not khuon_entries:
+        return jsonify({"status": "error", "message": "Không có dữ liệu khuôn"}), 400
+
+    result = save_khuon_data(DATA_DIR, username, khuon_entries)
     return jsonify(result)
 
 
@@ -399,6 +425,101 @@ def api_report_day_details(day):
     }
 
     return jsonify(details)
+
+
+# ── Khuôn Tracking ────────────────────────────────────────
+
+def _load_khuon_for_month(year, month):
+    """Load khuon data: try DB first, fall back to Excel."""
+    # Try DB first
+    khuon_data = get_khuon_data(DATA_DIR, year, month)
+    total_in_db = sum(len(v) for v in khuon_data.values())
+    if total_in_db > 0:
+        return khuon_data
+    # Fall back to Excel (local dev)
+    try:
+        from khuon_loader import load_all_khuon_for_month
+        return load_all_khuon_for_month(DATA_DIR, month, year)
+    except Exception:
+        return khuon_data
+
+
+def _load_khuon_yearly_data(year):
+    """Load khuon yearly: try DB first, fall back to Excel."""
+    data = get_khuon_yearly(DATA_DIR, year)
+    total_in_db = sum(len(v) for v in data.values())
+    if total_in_db > 0:
+        return data
+    try:
+        from khuon_loader import load_khuon_yearly
+        return load_khuon_yearly(DATA_DIR, year)
+    except Exception:
+        return data
+
+
+@app.route("/khuon")
+@login_required
+def khuon_page():
+    """Mold tracking page — daily & monthly views."""
+    result = get_all_data()
+    months = result["months"]
+    from datetime import datetime as _dt
+    fallback = _dt.now().strftime("%Y-%m")
+    selected_month = request.args.get("month", months[0] if months else fallback)
+
+    # Parse month
+    parts = selected_month.split("-")
+    year = int(parts[0])
+    month = int(parts[1])
+    month_label = f"Tháng {month}/{year}"
+
+    # Build month labels for dropdown
+    month_labels = []
+    for mk in months:
+        p = mk.split("-")
+        label = f"Tháng {int(p[1])}/{p[0]}"
+        month_labels.append({"key": mk, "label": label})
+
+    # Load khuon data (DB first, then Excel fallback)
+    khuon_data = _load_khuon_for_month(year, month)
+
+    return render_template(
+        "khuon.html",
+        khuon_data=khuon_data,
+        months=month_labels,
+        selected_month=selected_month,
+        month_label=month_label,
+    )
+
+
+@app.route("/api/khuon")
+@login_required
+def api_khuon_monthly():
+    """API: khuon data for a specific month."""
+    month_key = request.args.get("month", "")
+    if not month_key or "-" not in month_key:
+        return jsonify({"error": "Missing month param"}), 400
+
+    parts = month_key.split("-")
+    year = int(parts[0])
+    month = int(parts[1])
+    data = _load_khuon_for_month(year, month)
+    return jsonify(data)
+
+
+@app.route("/api/khuon/yearly")
+@login_required
+def api_khuon_yearly():
+    """API: yearly khuon summary (all months in a year)."""
+    year = request.args.get("year", "")
+    if not year:
+        from datetime import datetime as _dt
+        year = _dt.now().year
+    else:
+        year = int(year)
+
+    data = _load_khuon_yearly_data(year)
+    return jsonify(data)
 
 
 if __name__ == "__main__":

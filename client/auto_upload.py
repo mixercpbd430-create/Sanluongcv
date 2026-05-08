@@ -98,7 +98,7 @@ if _profile:
     if "--profile" not in sys.argv:
         sys.argv.extend(["--profile", _profile])
 
-from uploader import load_config, read_all_files, upload_data
+from uploader import load_config, read_all_files, upload_data, upload_khuon
 
 
 def main():
@@ -130,22 +130,22 @@ def main():
     log.info(f"📂 Đọc file từ: {folder}")
     log.info(f"👤 User: {username}")
 
-    entries, nvvh_entries, loss_entries, file_results = read_all_files(folder, username)
+    entries, nvvh_entries, loss_entries, khuon_entries, file_results = read_all_files(folder, username)
 
     for msg in file_results:
         log.info(msg)
 
-    if not entries and not nvvh_entries and not loss_entries:
+    if not entries and not nvvh_entries and not loss_entries and not khuon_entries:
         log.warning("⚠️ Không tìm thấy dữ liệu phù hợp")
         add_history_entry("no-data", username)
         sys.exit(0)
 
-    log.info(f"📊 Tổng: {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS")
+    log.info(f"📊 Tổng: {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS, {len(khuon_entries)} KHUÔN")
 
     # Dry-run mode: stop here
     if _dry_run:
         log.info("🧪 [DRY-RUN] Chỉ kiểm tra đọc file. Không gửi lên server.")
-        log.info(f"🧪 [DRY-RUN] Sẽ gửi {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS nếu chạy thật.")
+        log.info(f"🧪 [DRY-RUN] Sẽ gửi {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS, {len(khuon_entries)} KHUÔN nếu chạy thật.")
         add_history_entry("dry-run", username, records_sent=len(entries), dry_run=True)
         log.info("Hoàn tất (dry-run)!")
         return
@@ -174,6 +174,22 @@ def main():
             if error_msgs:
                 for err in error_msgs:
                     log.warning(f"   ⚠️ {err}")
+
+            # Upload khuon data
+            khuon_saved = 0
+            if khuon_entries:
+                log.info(f"🔩 Đang gửi {len(khuon_entries)} khuôn...")
+                khuon_result = upload_khuon(server, username, password, khuon_entries)
+                if khuon_result.get("status") == "ok":
+                    khuon_saved = khuon_result.get("khuon_count", 0)
+                    log.info(f"   ✅ Khuôn: {khuon_saved} bản ghi")
+                else:
+                    log.error(f"   ❌ Lỗi khuôn: {khuon_result.get('message', 'Unknown')}")
+                khuon_errors = khuon_result.get("errors", [])
+                if khuon_errors:
+                    for err in khuon_errors:
+                        log.warning(f"   ⚠️ {err}")
+                    error_msgs.extend(khuon_errors)
 
             add_history_entry(
                 "success", username,

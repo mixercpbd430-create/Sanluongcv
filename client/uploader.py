@@ -326,13 +326,83 @@ def parse_loss_from_file(filepath, month, year):
     return entries
 
 
+# ─── Khuôn Parser ─────────────────────────────────────────
+def parse_khuon_from_file(filepath, pl_num, month, year):
+    """Parse SERI sheet from a PL file for khuon tracking data.
+    Returns list of {
+        pl_num, year, month, seri, thong_so,
+        days: {1: val, 2: val, ...},
+        tong_thang, ton_truoc, tong
+    }
+    """
+    # Column layout differs by PL:
+    #   PL2: seri=C(2), khuon=D(3), day1=E(4)
+    #   Others: seri=B(1), khuon=C(2), day1=D(3)
+    if pl_num == 2:
+        seri_idx, khuon_idx, day1_idx = 2, 3, 4
+    else:
+        seri_idx, khuon_idx, day1_idx = 1, 2, 3
+
+    # Summary columns: day1 + 31, day1 + 32, day1 + 33
+    tong_thang_idx = day1_idx + 31
+    ton_truoc_idx = day1_idx + 32
+    tong_idx = day1_idx + 33
+
+    entries = []
+    try:
+        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+        if 'SERI' not in wb.sheetnames:
+            wb.close()
+            return []
+
+        ws = wb['SERI']
+        for row in ws.iter_rows(min_row=3, max_row=100, min_col=1,
+                                max_col=tong_idx + 1, values_only=True):
+            seri_val = row[seri_idx] if len(row) > seri_idx else None
+            if seri_val is None or str(seri_val).strip() == '':
+                continue
+
+            thong_so = row[khuon_idx] if len(row) > khuon_idx else ''
+
+            # Read daily values (day 1-31)
+            days = {}
+            for d in range(31):
+                col_idx = day1_idx + d
+                val = row[col_idx] if len(row) > col_idx else 0
+                days[d + 1] = round(float(val), 2) if val else 0
+
+            # Summary columns
+            tong_thang = row[tong_thang_idx] if len(row) > tong_thang_idx else 0
+            ton_truoc = row[ton_truoc_idx] if len(row) > ton_truoc_idx else 0
+            tong = row[tong_idx] if len(row) > tong_idx else 0
+
+            entries.append({
+                'pl_num': pl_num,
+                'year': year,
+                'month': month,
+                'seri': str(seri_val).strip(),
+                'thong_so': str(thong_so).strip() if thong_so else '',
+                'days': days,
+                'tong_thang': round(float(tong_thang), 2) if tong_thang else 0,
+                'ton_truoc': round(float(ton_truoc), 2) if ton_truoc else 0,
+                'tong': round(float(tong), 2) if tong else 0,
+            })
+
+        wb.close()
+    except Exception as e:
+        print(f"⚠️ Khuôn parse error ({filepath}): {e}")
+
+    return entries
+
+
 def read_all_files(folder, username):
     """Read all Excel files from folder.
-    Returns: (production_entries, nvvh_entries, loss_entries, file_results)
+    Returns: (production_entries, nvvh_entries, loss_entries, khuon_entries, file_results)
     """
     all_entries = []
     nvvh_entries = []
     loss_entries = []
+    khuon_entries = []
     file_results = []
 
     for type_key in ALL_FILE_TYPES:
@@ -373,7 +443,21 @@ def read_all_files(folder, username):
                         loss_entries.extend(loss)
                         file_results.append(f"   📋 LOSS: {len(loss)} records")
 
-    return all_entries, nvvh_entries, loss_entries, file_results
+            # Parse KHUÔN from PL files only (SERI sheet)
+            if type_key == "PL":
+                fn = os.path.basename(filepath)
+                match = re.match(config["regex"], fn, re.IGNORECASE)
+                if match:
+                    line_name = match.group(1).upper()
+                    pl_num = int(re.search(r'\d+', line_name).group())
+                    month = int(match.group(2))
+                    year = int(match.group(3))
+                    khuon = parse_khuon_from_file(filepath, pl_num, month, year)
+                    if khuon:
+                        khuon_entries.extend(khuon)
+                        file_results.append(f"   🔩 KHUÔN: {len(khuon)} khuôn")
+
+    return all_entries, nvvh_entries, loss_entries, khuon_entries, file_results
 
 
 def upload_data(server_url, username, password, entries, nvvh_entries=None, loss_entries=None):
@@ -388,6 +472,21 @@ def upload_data(server_url, username, password, entries, nvvh_entries=None, loss
         "entries": entries,
         "nvvh_entries": nvvh_entries or [],
         "loss_entries": loss_entries or [],
+    }
+    resp = requests.post(url, json=payload, timeout=300, verify=False)
+    return resp.json()
+
+
+def upload_khuon(server_url, username, password, khuon_entries):
+    """Send khuon tracking data to server via API."""
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    url = f"{server_url.rstrip('/')}/api/upload-khuon"
+    payload = {
+        "username": username,
+        "password": password,
+        "khuon_entries": khuon_entries,
     }
     resp = requests.post(url, json=payload, timeout=300, verify=False)
     return resp.json()
@@ -524,37 +623,52 @@ class UploaderApp:
             self._log(f"👤 User: {username}")
             self._log("")
 
-            entries, nvvh_entries, loss_entries, file_results = read_all_files(folder, username)
+            entries, nvvh_entries, loss_entries, khuon_entries, file_results = read_all_files(folder, username)
 
             for msg in file_results:
                 self._log(msg)
 
-            if not entries and not nvvh_entries and not loss_entries:
+            if not entries and not nvvh_entries and not loss_entries and not khuon_entries:
                 self._log("\n❌ Không tìm thấy dữ liệu phù hợp!")
                 return
 
-            self._log(f"\n📊 Tổng: {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS")
+            self._log(f"\n📊 Tổng: {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS, {len(khuon_entries)} KHUÔN")
             self._log(f"🚀 Đang gửi lên {server}...")
 
-            # Upload
-            result = upload_data(server, username, password, entries, nvvh_entries, loss_entries)
+            # Upload production + NVVH + LOSS
+            if entries or nvvh_entries or loss_entries:
+                result = upload_data(server, username, password, entries, nvvh_entries, loss_entries)
 
-            if result.get("status") == "ok":
-                now = datetime.now().strftime("%H:%M:%S")
-                self._log(f"\n✅ Gửi thành công lúc {now}!")
-                self._log(f"   Sản lượng: {result.get('inserted', 0)} bản ghi")
-                if result.get('nvvh_count', 0) > 0:
-                    self._log(f"   NVVH: {result['nvvh_count']} bản ghi")
-                if result.get('loss_count', 0) > 0:
-                    self._log(f"   LOSS: {result['loss_count']} bản ghi")
-                if result.get("skipped", 0) > 0:
-                    self._log(f"   Bỏ qua: {result['skipped']}")
-            else:
-                self._log(f"\n❌ Lỗi: {result.get('message', 'Unknown error')}")
+                if result.get("status") == "ok":
+                    now = datetime.now().strftime("%H:%M:%S")
+                    self._log(f"\n✅ Gửi sản lượng thành công lúc {now}!")
+                    self._log(f"   Sản lượng: {result.get('inserted', 0)} bản ghi")
+                    if result.get('nvvh_count', 0) > 0:
+                        self._log(f"   NVVH: {result['nvvh_count']} bản ghi")
+                    if result.get('loss_count', 0) > 0:
+                        self._log(f"   LOSS: {result['loss_count']} bản ghi")
+                    if result.get("skipped", 0) > 0:
+                        self._log(f"   Bỏ qua: {result['skipped']}")
+                else:
+                    self._log(f"\n❌ Lỗi: {result.get('message', 'Unknown error')}")
 
-            if result.get("errors"):
-                for err in result["errors"]:
-                    self._log(f"   ⚠️ {err}")
+                if result.get("errors"):
+                    for err in result["errors"]:
+                        self._log(f"   ⚠️ {err}")
+
+            # Upload khuon data separately
+            if khuon_entries:
+                self._log(f"\n🔩 Đang gửi dữ liệu khuôn ({len(khuon_entries)} khuôn)...")
+                khuon_result = upload_khuon(server, username, password, khuon_entries)
+
+                if khuon_result.get("status") == "ok":
+                    self._log(f"   ✅ Khuôn: {khuon_result.get('khuon_count', 0)} bản ghi")
+                else:
+                    self._log(f"   ❌ Lỗi khuôn: {khuon_result.get('message', 'Unknown')}")
+
+                if khuon_result.get("errors"):
+                    for err in khuon_result["errors"]:
+                        self._log(f"   ⚠️ {err}")
 
         except requests.exceptions.ConnectionError:
             self._log(f"\n❌ Không kết nối được đến server!")

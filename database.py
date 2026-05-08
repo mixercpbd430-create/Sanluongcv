@@ -193,11 +193,34 @@ def init_db(data_dir=None):
                 UNIQUE(year, month, day, pl_num, code)
             )
         """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS khuon_tracking (
+                id SERIAL PRIMARY KEY,
+                pl_num INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                month INTEGER NOT NULL,
+                seri TEXT NOT NULL,
+                thong_so TEXT NOT NULL DEFAULT '',
+                d1 REAL DEFAULT 0, d2 REAL DEFAULT 0, d3 REAL DEFAULT 0, d4 REAL DEFAULT 0,
+                d5 REAL DEFAULT 0, d6 REAL DEFAULT 0, d7 REAL DEFAULT 0, d8 REAL DEFAULT 0,
+                d9 REAL DEFAULT 0, d10 REAL DEFAULT 0, d11 REAL DEFAULT 0, d12 REAL DEFAULT 0,
+                d13 REAL DEFAULT 0, d14 REAL DEFAULT 0, d15 REAL DEFAULT 0, d16 REAL DEFAULT 0,
+                d17 REAL DEFAULT 0, d18 REAL DEFAULT 0, d19 REAL DEFAULT 0, d20 REAL DEFAULT 0,
+                d21 REAL DEFAULT 0, d22 REAL DEFAULT 0, d23 REAL DEFAULT 0, d24 REAL DEFAULT 0,
+                d25 REAL DEFAULT 0, d26 REAL DEFAULT 0, d27 REAL DEFAULT 0, d28 REAL DEFAULT 0,
+                d29 REAL DEFAULT 0, d30 REAL DEFAULT 0, d31 REAL DEFAULT 0,
+                tong_thang REAL DEFAULT 0,
+                ton_truoc REAL DEFAULT 0,
+                tong REAL DEFAULT 0,
+                UNIQUE(pl_num, year, month, seri)
+            )
+        """)
         # Create indexes (IF NOT EXISTS for PG)
         c.execute("CREATE INDEX IF NOT EXISTS idx_production_month ON production(year, month)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_production_line_month ON production(line_name, year, month)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_nvvh_day ON nvvh(year, month, day)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_loss_day ON loss_notes(year, month, day)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_khuon_month ON khuon_tracking(year, month)")
     else:
         # SQLite syntax
         c.execute("""
@@ -266,10 +289,33 @@ def init_db(data_dir=None):
                 UNIQUE(year, month, day, pl_num, code)
             )
         """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS khuon_tracking (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pl_num INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                month INTEGER NOT NULL,
+                seri TEXT NOT NULL,
+                thong_so TEXT NOT NULL DEFAULT '',
+                d1 REAL DEFAULT 0, d2 REAL DEFAULT 0, d3 REAL DEFAULT 0, d4 REAL DEFAULT 0,
+                d5 REAL DEFAULT 0, d6 REAL DEFAULT 0, d7 REAL DEFAULT 0, d8 REAL DEFAULT 0,
+                d9 REAL DEFAULT 0, d10 REAL DEFAULT 0, d11 REAL DEFAULT 0, d12 REAL DEFAULT 0,
+                d13 REAL DEFAULT 0, d14 REAL DEFAULT 0, d15 REAL DEFAULT 0, d16 REAL DEFAULT 0,
+                d17 REAL DEFAULT 0, d18 REAL DEFAULT 0, d19 REAL DEFAULT 0, d20 REAL DEFAULT 0,
+                d21 REAL DEFAULT 0, d22 REAL DEFAULT 0, d23 REAL DEFAULT 0, d24 REAL DEFAULT 0,
+                d25 REAL DEFAULT 0, d26 REAL DEFAULT 0, d27 REAL DEFAULT 0, d28 REAL DEFAULT 0,
+                d29 REAL DEFAULT 0, d30 REAL DEFAULT 0, d31 REAL DEFAULT 0,
+                tong_thang REAL DEFAULT 0,
+                ton_truoc REAL DEFAULT 0,
+                tong REAL DEFAULT 0,
+                UNIQUE(pl_num, year, month, seri)
+            )
+        """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_production_month ON production(year, month)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_production_line_month ON production(line_name, year, month)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_nvvh_day ON nvvh(year, month, day)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_loss_day ON loss_notes(year, month, day)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_khuon_month ON khuon_tracking(year, month)")
 
     conn.commit()
 
@@ -812,6 +858,175 @@ def get_loss_for_day(year, month, day):
                 'ca3_count': row['ca3_count'],
                 'ca3_time': row['ca3_time'],
             })
+
+    return result
+
+
+# ─── Khuôn Tracking ───────────────────────────────────────
+
+def save_khuon_data(data_dir, username, khuon_entries):
+    """Save khuon tracking data uploaded from client.
+    khuon_entries: list of {
+        pl_num, year, month, seri, thong_so,
+        days: {1: val, 2: val, ...},
+        tong_thang, ton_truoc, tong
+    }
+    """
+    conn = _get_conn()
+    saved = 0
+    errors = []
+
+    for k in khuon_entries:
+        try:
+            pl_num = int(k["pl_num"])
+            year = int(k["year"])
+            month = int(k["month"])
+            seri = str(k["seri"]).strip()
+            thong_so = str(k.get("thong_so", "")).strip()
+            days = k.get("days", {})
+
+            # Build day values d1..d31
+            day_vals = [float(days.get(str(d), days.get(d, 0)) or 0) for d in range(1, 32)]
+            tong_thang = float(k.get("tong_thang", 0) or 0)
+            ton_truoc = float(k.get("ton_truoc", 0) or 0)
+            tong = float(k.get("tong", 0) or 0)
+
+            params = (pl_num, year, month, seri, thong_so,
+                      *day_vals, tong_thang, ton_truoc, tong)
+
+            day_cols = ', '.join(f'd{d}' for d in range(1, 32))
+            day_update_pg = ', '.join(f'd{d}=EXCLUDED.d{d}' for d in range(1, 32))
+
+            if _use_postgres():
+                placeholders = ', '.join(['%s'] * len(params))
+                c = conn.cursor()
+                c.execute(f"""
+                    INSERT INTO khuon_tracking
+                    (pl_num, year, month, seri, thong_so,
+                     {day_cols}, tong_thang, ton_truoc, tong)
+                    VALUES ({placeholders})
+                    ON CONFLICT (pl_num, year, month, seri)
+                    DO UPDATE SET thong_so=EXCLUDED.thong_so,
+                        {day_update_pg},
+                        tong_thang=EXCLUDED.tong_thang,
+                        ton_truoc=EXCLUDED.ton_truoc,
+                        tong=EXCLUDED.tong
+                """, params)
+            else:
+                placeholders = ', '.join(['?'] * len(params))
+                _execute(conn, f"""
+                    INSERT OR REPLACE INTO khuon_tracking
+                    (pl_num, year, month, seri, thong_so,
+                     {day_cols}, tong_thang, ton_truoc, tong)
+                    VALUES ({placeholders})
+                """, params)
+            saved += 1
+        except Exception as e:
+            errors.append(f"PL{k.get('pl_num')} {k.get('seri')}: {str(e)}")
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "status": "ok",
+        "khuon_count": saved,
+        "errors": errors[:10],
+    }
+
+
+def get_khuon_data(data_dir, year, month):
+    """Get khuon tracking data for a specific month.
+    Returns: {"PL1": [{seri, thong_so, days: {1:v,...}, tong_thang, ton_truoc, tong}, ...], ...}
+    """
+    conn = _get_conn()
+    c = conn.cursor()
+
+    if _use_postgres():
+        c.execute("SELECT * FROM khuon_tracking WHERE year=%s AND month=%s ORDER BY pl_num, seri",
+                  (year, month))
+    else:
+        c.execute("SELECT * FROM khuon_tracking WHERE year=? AND month=? ORDER BY pl_num, seri",
+                  (year, month))
+
+    result = {f"PL{i}": [] for i in range(1, 8)}
+
+    if _use_postgres():
+        columns = [desc[0] for desc in c.description] if c.description else []
+        rows = [dict(zip(columns, row)) for row in c.fetchall()]
+    else:
+        rows = [dict(r) for r in c.fetchall()]
+
+    conn.close()
+
+    for row in rows:
+        pl_key = f"PL{row['pl_num']}"
+        if pl_key not in result:
+            continue
+
+        days = {}
+        for d in range(1, 32):
+            val = row.get(f'd{d}', 0) or 0
+            days[d] = round(float(val), 2)
+
+        result[pl_key].append({
+            "seri": row["seri"],
+            "thong_so": row.get("thong_so", ""),
+            "days": days,
+            "tong_thang": round(float(row.get("tong_thang", 0) or 0), 2),
+            "ton_truoc": round(float(row.get("ton_truoc", 0) or 0), 2),
+            "tong": round(float(row.get("tong", 0) or 0), 2),
+        })
+
+    return result
+
+
+def get_khuon_yearly(data_dir, year):
+    """Get khuon tracking data for all months in a year (summary by month).
+    Returns: {"PL1": [{seri, thong_so, months: {1: val,...}, year_total}, ...], ...}
+    """
+    conn = _get_conn()
+    c = conn.cursor()
+
+    if _use_postgres():
+        c.execute("SELECT pl_num, seri, thong_so, month, tong_thang FROM khuon_tracking WHERE year=%s ORDER BY pl_num, seri",
+                  (year,))
+    else:
+        c.execute("SELECT pl_num, seri, thong_so, month, tong_thang FROM khuon_tracking WHERE year=? ORDER BY pl_num, seri",
+                  (year,))
+
+    if _use_postgres():
+        columns = [desc[0] for desc in c.description] if c.description else []
+        rows = [dict(zip(columns, row)) for row in c.fetchall()]
+    else:
+        rows = [dict(r) for r in c.fetchall()]
+
+    conn.close()
+
+    # Aggregate by (pl_num, seri)
+    result = {f"PL{i}": [] for i in range(1, 8)}
+    mold_map = {}  # (pl_num, seri) -> entry
+
+    for row in rows:
+        key = (row["pl_num"], row["seri"])
+        if key not in mold_map:
+            mold_map[key] = {
+                "seri": row["seri"],
+                "thong_so": row.get("thong_so", ""),
+                "months": {},
+                "year_total": 0,
+                "_pl": row["pl_num"],
+            }
+        tong_thang = float(row.get("tong_thang", 0) or 0)
+        if tong_thang > 0:
+            mold_map[key]["months"][row["month"]] = round(tong_thang, 2)
+            mold_map[key]["year_total"] += tong_thang
+
+    for key, entry in sorted(mold_map.items()):
+        pl_key = f"PL{entry['_pl']}"
+        if pl_key in result:
+            entry["year_total"] = round(entry["year_total"], 2)
+            del entry["_pl"]
+            result[pl_key].append(entry)
 
     return result
 
