@@ -324,12 +324,12 @@ function renderMonthlyTable() {
 }
 
 // ---- Toggle zero rows ----
-function toggleZeroKhuon() {
-    // Read from whichever checkbox triggered
+function toggleZeroKhuon(e) {
+    // Use the clicked checkbox value
+    hideZeroRows = e ? e.checked : !hideZeroRows;
+    // Sync both checkboxes
     const cb1 = document.getElementById('toggle-zero-khuon');
     const cb2 = document.getElementById('toggle-zero-khuon-monthly');
-    hideZeroRows = (cb1 && cb1.checked) || (cb2 && cb2.checked);
-    // Sync both checkboxes
     if (cb1) cb1.checked = hideZeroRows;
     if (cb2) cb2.checked = hideZeroRows;
     // Toggle one class on containers → CSS hides all .row-zero instantly
