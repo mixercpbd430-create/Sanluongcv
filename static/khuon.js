@@ -5,13 +5,22 @@
 
 let currentView = 'daily';     // 'daily' or 'monthly'
 let currentPL = 'ALL';         // 'ALL' or 'PL1'..'PL7'
-let hideZeroRows = false;
+let hideZeroRows = true;       // Default: hide zero rows
 let dailyData = null;          // From server (KHUON_DATA)
 let monthlyData = null;        // Fetched via API
 
 // ---- Initialize ----
 document.addEventListener('DOMContentLoaded', () => {
     dailyData = typeof KHUON_DATA !== 'undefined' ? KHUON_DATA : {};
+    // Set toggle checkboxes to default state
+    const cb1 = document.getElementById('toggle-zero-khuon');
+    const cb2 = document.getElementById('toggle-zero-khuon-monthly');
+    if (cb1) cb1.checked = hideZeroRows;
+    if (cb2) cb2.checked = hideZeroRows;
+    // Apply hide class
+    document.querySelectorAll('.khuon-table-wrap').forEach(wrap => {
+        wrap.classList.toggle('hide-zero-rows', hideZeroRows);
+    });
     renderStats();
     renderPLFilter();
     renderDailyTable();

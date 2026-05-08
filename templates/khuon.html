@@ -130,6 +130,9 @@
                 <div class="khuon-table-header">
                     <h2 id="daily-title">Sản Lượng Khuôn Theo Ngày — {{ month_label }}</h2>
                     <div class="khuon-controls">
+                        <a href="/api/khuon/export?view=daily&month={{ selected_month }}" class="btn-export" title="Xuất Excel">
+                            📥 Xuất Excel
+                        </a>
                         <label class="toggle-label">
                             <input type="checkbox" id="toggle-zero-khuon" onchange="toggleZeroKhuon()">
                             <span class="toggle-slider"></span>
@@ -165,6 +168,9 @@
                 <div class="khuon-table-header">
                     <h2 id="monthly-title">Tổng Hợp Khuôn Theo Tháng — Năm {{ selected_month.split('-')[0] }}</h2>
                     <div class="khuon-controls">
+                        <a href="/api/khuon/export?view=monthly&month={{ selected_month }}" class="btn-export" title="Xuất Excel">
+                            📥 Xuất Excel
+                        </a>
                         <label class="toggle-label">
                             <input type="checkbox" id="toggle-zero-khuon-monthly" onchange="toggleZeroKhuon()">
                             <span class="toggle-slider"></span>

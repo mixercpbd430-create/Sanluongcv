@@ -9,7 +9,7 @@ import os
 import time
 from functools import wraps
 from flask import (Flask, render_template, jsonify, request,
-                   session, redirect, url_for)
+                   session, redirect, url_for, send_file)
 from database import (init_db, import_from_excel, import_month_from_excel,
                       load_all_from_db, get_db_stats,
                       save_manual_input, get_manual_inputs,
@@ -521,6 +521,139 @@ def api_khuon_yearly():
     data = _load_khuon_yearly_data(year)
     return jsonify(data)
 
+
+@app.route("/api/khuon/export")
+@login_required
+def api_khuon_export():
+    """Export khuon data to Excel file."""
+    import io
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    except ImportError:
+        return jsonify({"error": "openpyxl not installed"}), 500
+
+    view = request.args.get("view", "monthly")  # daily or monthly
+    month_key = request.args.get("month", "")
+
+    if not month_key or "-" not in month_key:
+        from datetime import datetime as _dt
+        month_key = _dt.now().strftime("%Y-%m")
+
+    parts = month_key.split("-")
+    year = int(parts[0])
+    month = int(parts[1])
+
+    wb = openpyxl.Workbook()
+
+    # Styles
+    header_font = Font(bold=True, color="FFFFFF", size=10)
+    header_fill = PatternFill(start_color="3B4252", end_color="3B4252", fill_type="solid")
+    value_fill = PatternFill(start_color="D8F3DC", end_color="D8F3DC", fill_type="solid")
+    summary_font = Font(bold=True, size=10)
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin'),
+    )
+    center = Alignment(horizontal='center', vertical='center')
+
+    if view == "daily":
+        # Daily view
+        data = _load_khuon_for_month(year, month)
+        ws = wb.active
+        ws.title = f"T{month}.{year}"
+
+        # Header
+        headers = ["STT", "Seri Khuôn", "Khuôn", "PL"]
+        for d in range(1, 32):
+            headers.append(str(d))
+        headers += ["Tổng Tháng", "Tồn Trước", "Tổng"]
+
+        for col, h in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=h)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center
+            cell.border = thin_border
+
+        # Data
+        row_num = 2
+        for pl_key in [f"PL{i}" for i in range(1, 8)]:
+            for m in data.get(pl_key, []):
+                ws.cell(row=row_num, column=1, value=row_num - 1).alignment = center
+                ws.cell(row=row_num, column=2, value=m["seri"])
+                ws.cell(row=row_num, column=3, value=m.get("thong_so", ""))
+                ws.cell(row=row_num, column=4, value=pl_key).alignment = center
+                for d in range(1, 32):
+                    val = m.get("days", {}).get(str(d), m.get("days", {}).get(d, 0)) or 0
+                    cell = ws.cell(row=row_num, column=4 + d, value=float(val))
+                    if float(val) > 0:
+                        cell.fill = value_fill
+                    cell.alignment = center
+                ws.cell(row=row_num, column=36, value=m.get("tong_thang", 0)).font = summary_font
+                ws.cell(row=row_num, column=37, value=m.get("ton_truoc", 0))
+                ws.cell(row=row_num, column=38, value=m.get("tong", 0)).font = summary_font
+                for col in range(1, 39):
+                    ws.cell(row=row_num, column=col).border = thin_border
+                row_num += 1
+
+        # Column widths
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 12
+        filename = f"Khuon_T{month}_{year}.xlsx"
+
+    else:
+        # Monthly/Yearly view
+        data = _load_khuon_yearly_data(year)
+        ws = wb.active
+        ws.title = f"Nam {year}"
+
+        headers = ["STT", "Seri Khuôn", "Khuôn", "PL"]
+        for m in range(1, 13):
+            headers.append(f"T{m}")
+        headers.append("Tổng Năm")
+
+        for col, h in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=h)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center
+            cell.border = thin_border
+
+        row_num = 2
+        for pl_key in [f"PL{i}" for i in range(1, 8)]:
+            for m in data.get(pl_key, []):
+                ws.cell(row=row_num, column=1, value=row_num - 1).alignment = center
+                ws.cell(row=row_num, column=2, value=m["seri"])
+                ws.cell(row=row_num, column=3, value=m.get("thong_so", ""))
+                ws.cell(row=row_num, column=4, value=pl_key).alignment = center
+                months_data = m.get("months", {})
+                for mo in range(1, 13):
+                    val = months_data.get(str(mo), months_data.get(mo, 0)) or 0
+                    cell = ws.cell(row=row_num, column=4 + mo, value=float(val))
+                    if float(val) > 0:
+                        cell.fill = value_fill
+                    cell.alignment = center
+                ws.cell(row=row_num, column=17, value=m.get("year_total", 0)).font = summary_font
+                for col in range(1, 18):
+                    ws.cell(row=row_num, column=col).border = thin_border
+                row_num += 1
+
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 12
+        filename = f"Khuon_Nam_{year}.xlsx"
+
+    # Save to buffer
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
 
 if __name__ == "__main__":
     print("=" * 60)
