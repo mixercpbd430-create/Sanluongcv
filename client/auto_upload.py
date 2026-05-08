@@ -182,7 +182,7 @@ def main():
                 khuon_result = upload_khuon(server, username, password, khuon_entries)
                 if khuon_result.get("status") == "ok":
                     khuon_saved = khuon_result.get("khuon_count", 0)
-                    log.info(f"   ✅ Khuôn: {khuon_saved} bản ghi")
+                    log.info(f"   ✅ Gửi khuôn thành công! {khuon_saved} bản ghi")
                 else:
                     log.error(f"   ❌ Lỗi khuôn: {khuon_result.get('message', 'Unknown')}")
                 khuon_errors = khuon_result.get("errors", [])
