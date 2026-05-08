@@ -349,7 +349,8 @@
     opacity: 0.4;
 }
 
-.khuon-table tbody tr.row-zero.hidden-zero {
+/* Container-level toggle: one class hides all zero rows instantly */
+.khuon-table-wrap.hide-zero-rows .khuon-table tbody tr.row-zero {
     display: none;
 }
 

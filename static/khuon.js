@@ -159,10 +159,7 @@ function renderDailyTable() {
     molds.forEach((m, idx) => {
         const isZero = m.tong_thang === 0;
         const tr = document.createElement('tr');
-        if (isZero) {
-            tr.classList.add('row-zero');
-            if (hideZeroRows) tr.classList.add('hidden-zero');
-        }
+        if (isZero) tr.classList.add('row-zero');
 
         let cells = `
             <td class="sticky-col col-stt">${idx + 1}</td>
@@ -276,10 +273,7 @@ function renderMonthlyTable() {
     molds.forEach((m, idx) => {
         const isZero = m.year_total === 0;
         const tr = document.createElement('tr');
-        if (isZero) {
-            tr.classList.add('row-zero');
-            if (hideZeroRows) tr.classList.add('hidden-zero');
-        }
+        if (isZero) tr.classList.add('row-zero');
 
         let cells = `
             <td class="sticky-col col-stt">${idx + 1}</td>
@@ -322,8 +316,15 @@ function renderMonthlyTable() {
 
 // ---- Toggle zero rows ----
 function toggleZeroKhuon() {
-    hideZeroRows = document.getElementById('toggle-zero-khuon').checked;
-    document.querySelectorAll('.row-zero').forEach(row => {
-        row.classList.toggle('hidden-zero', hideZeroRows);
+    // Read from whichever checkbox triggered
+    const cb1 = document.getElementById('toggle-zero-khuon');
+    const cb2 = document.getElementById('toggle-zero-khuon-monthly');
+    hideZeroRows = (cb1 && cb1.checked) || (cb2 && cb2.checked);
+    // Sync both checkboxes
+    if (cb1) cb1.checked = hideZeroRows;
+    if (cb2) cb2.checked = hideZeroRows;
+    // Toggle one class on containers → CSS hides all .row-zero instantly
+    document.querySelectorAll('.khuon-table-wrap').forEach(wrap => {
+        wrap.classList.toggle('hide-zero-rows', hideZeroRows);
     });
 }
