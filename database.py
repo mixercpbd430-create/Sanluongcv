@@ -876,7 +876,7 @@ def save_khuon_data(data_dir, username, khuon_entries):
     all_cols = f"pl_num, year, month, seri, thong_so, {day_cols}, tong_thang, ton_truoc, tong"
 
     # Prepare all rows
-    rows = []
+    rows_map = {}  # (pl_num, year, month, seri) -> row tuple (dedup, keep last)
     for k in khuon_entries:
         try:
             days = k.get("days", {})
@@ -890,9 +890,13 @@ def save_khuon_data(data_dir, username, khuon_entries):
                 float(k.get("ton_truoc", 0) or 0),
                 float(k.get("tong", 0) or 0),
             )
-            rows.append(row)
+            # Unique key: (pl_num, year, month, seri)
+            key = (row[0], row[1], row[2], row[3])
+            rows_map[key] = row
         except Exception as e:
             errors.append(f"PL{k.get('pl_num')} {k.get('seri')}: {str(e)}")
+
+    rows = list(rows_map.values())
 
     if not rows:
         conn.close()
