@@ -364,12 +364,14 @@ def parse_khuon_from_file(filepath, pl_num, month, year):
 
             thong_so = row[khuon_idx] if len(row) > khuon_idx else ''
 
-            # Read daily values (day 1-31)
+            # Read daily values (day 1-31) — only non-zero to reduce payload
             days = {}
             for d in range(31):
                 col_idx = day1_idx + d
                 val = row[col_idx] if len(row) > col_idx else 0
-                days[d + 1] = round(float(val), 2) if val else 0
+                v = round(float(val), 2) if val else 0
+                if v > 0:
+                    days[d + 1] = v
 
             # Summary columns
             tong_thang = row[tong_thang_idx] if len(row) > tong_thang_idx else 0
