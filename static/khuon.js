@@ -12,11 +12,9 @@ let monthlyData = null;        // Fetched via API
 // ---- Initialize ----
 document.addEventListener('DOMContentLoaded', () => {
     dailyData = typeof KHUON_DATA !== 'undefined' ? KHUON_DATA : {};
-    // Set toggle checkboxes to default state
-    const cb1 = document.getElementById('toggle-zero-khuon');
-    const cb2 = document.getElementById('toggle-zero-khuon-monthly');
-    if (cb1) cb1.checked = hideZeroRows;
-    if (cb2) cb2.checked = hideZeroRows;
+    // Set toggle checkbox to default state
+    const cb = document.getElementById('toggle-zero-khuon');
+    if (cb) cb.checked = hideZeroRows;
     // Apply hide class
     document.querySelectorAll('.khuon-table-wrap').forEach(wrap => {
         wrap.classList.toggle('hide-zero-rows', hideZeroRows);
@@ -47,6 +45,13 @@ function switchView(view) {
     document.querySelectorAll('.view-section').forEach(s => {
         s.classList.toggle('active', s.id === `view-${view}`);
     });
+
+    // Update the export link URL for the current view
+    const exportLink = document.getElementById('btn-export-link');
+    if (exportLink) {
+        const viewParam = view === 'monthly' ? 'monthly' : 'daily';
+        exportLink.href = `/api/khuon/export?view=${viewParam}&month=${SELECTED_MONTH}`;
+    }
 
     if (view === 'monthly' && !monthlyData) {
         loadMonthlyData();
@@ -349,13 +354,9 @@ function renderMonthlyTable() {
 
 // ---- Toggle zero rows ----
 function toggleZeroKhuon(e) {
-    // Use the clicked checkbox value
     hideZeroRows = e ? e.checked : !hideZeroRows;
-    // Sync both checkboxes
-    const cb1 = document.getElementById('toggle-zero-khuon');
-    const cb2 = document.getElementById('toggle-zero-khuon-monthly');
-    if (cb1) cb1.checked = hideZeroRows;
-    if (cb2) cb2.checked = hideZeroRows;
+    const cb = document.getElementById('toggle-zero-khuon');
+    if (cb) cb.checked = hideZeroRows;
     // Toggle one class on containers → CSS hides all .row-zero instantly
     document.querySelectorAll('.khuon-table-wrap').forEach(wrap => {
         wrap.classList.toggle('hide-zero-rows', hideZeroRows);

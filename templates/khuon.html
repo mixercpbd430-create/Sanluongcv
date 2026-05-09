@@ -83,31 +83,37 @@
             </div>
         </header>
 
-
-
-        <!-- Stats Row -->
-        <div class="stats-row" id="stats-row">
-            <div class="stat-card" style="--stat-accent: var(--accent-indigo);">
-                <div class="stat-label">Tổng khuôn</div>
-                <div class="stat-value"><span id="stat-total-khuon">0</span></div>
-            </div>
-            <div class="stat-card" style="--stat-accent: var(--accent-emerald);">
-                <div class="stat-label">Khuôn đang chạy</div>
-                <div class="stat-value"><span id="stat-active-khuon">0</span></div>
-            </div>
-            <div class="stat-card" style="--stat-accent: var(--accent-cyan);">
-                <div class="stat-label">Tổng tháng</div>
-                <div class="stat-value"><span id="stat-tong-thang">0</span><span class="stat-unit">tấn</span></div>
-            </div>
-            <div class="stat-card" style="--stat-accent: var(--accent-rose);">
-                <div class="stat-label">Tổng tích lũy</div>
-                <div class="stat-value"><span id="stat-tong-all">0</span><span class="stat-unit">tấn</span></div>
-            </div>
-        </div>
-
-        <!-- PL Filter + View Tabs Row -->
+        <!-- PL Filter + Stats + Controls + View Tabs (single row) -->
         <div class="pl-filter-row">
             <div class="pl-filter" id="pl-filter"></div>
+            <div class="inline-stats" id="inline-stats">
+                <div class="inline-stat" style="--stat-color: var(--accent-indigo);">
+                    <span class="inline-stat-label">Khuôn</span>
+                    <span class="inline-stat-value" id="stat-total-khuon">0</span>
+                </div>
+                <div class="inline-stat" style="--stat-color: var(--accent-emerald);">
+                    <span class="inline-stat-label">Chạy</span>
+                    <span class="inline-stat-value" id="stat-active-khuon">0</span>
+                </div>
+                <div class="inline-stat" style="--stat-color: var(--accent-cyan);">
+                    <span class="inline-stat-label">Tháng</span>
+                    <span class="inline-stat-value" id="stat-tong-thang">0</span>
+                </div>
+                <div class="inline-stat" style="--stat-color: var(--accent-rose);">
+                    <span class="inline-stat-label">Tích lũy</span>
+                    <span class="inline-stat-value" id="stat-tong-all">0</span>
+                </div>
+            </div>
+            <div class="khuon-controls" id="khuon-controls">
+                <a href="/api/khuon/export?view=daily&month={{ selected_month }}" class="btn-export" id="btn-export-link" title="Xuất Excel">
+                    📥 Xuất Excel
+                </a>
+                <label class="toggle-label">
+                    <input type="checkbox" id="toggle-zero-khuon" onchange="toggleZeroKhuon(this)">
+                    <span class="toggle-slider"></span>
+                    Ẩn khuôn không chạy
+                </label>
+            </div>
             <div class="view-tabs" id="view-tabs">
                 <button class="view-tab active" data-view="daily" onclick="switchView('daily')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -129,19 +135,6 @@
         <!-- ============ VIEW: THEO NGÀY ============ -->
         <div class="view-section active" id="view-daily">
             <div class="khuon-table-wrapper khuon-table-wrap">
-                <div class="khuon-table-header">
-                    <h2 id="daily-title">Sản Lượng Khuôn Theo Ngày — {{ month_label }}</h2>
-                    <div class="khuon-controls">
-                        <a href="/api/khuon/export?view=daily&month={{ selected_month }}" class="btn-export" title="Xuất Excel">
-                            📥 Xuất Excel
-                        </a>
-                        <label class="toggle-label">
-                            <input type="checkbox" id="toggle-zero-khuon" onchange="toggleZeroKhuon(this)">
-                            <span class="toggle-slider"></span>
-                            Ẩn khuôn không chạy
-                        </label>
-                    </div>
-                </div>
                 <div class="khuon-table-scroll">
                     <table class="khuon-table" id="daily-table">
                         <thead>
@@ -167,19 +160,7 @@
         <!-- ============ VIEW: THEO THÁNG ============ -->
         <div class="view-section" id="view-monthly">
             <div class="khuon-table-wrapper khuon-table-wrap">
-                <div class="khuon-table-header">
-                    <h2 id="monthly-title">Tổng Hợp Khuôn Theo Tháng — Năm {{ selected_month.split('-')[0] }}</h2>
-                    <div class="khuon-controls">
-                        <a href="/api/khuon/export?view=monthly&month={{ selected_month }}" class="btn-export" title="Xuất Excel">
-                            📥 Xuất Excel
-                        </a>
-                        <label class="toggle-label">
-                            <input type="checkbox" id="toggle-zero-khuon-monthly" onchange="toggleZeroKhuon(this)">
-                            <span class="toggle-slider"></span>
-                            Ẩn khuôn không chạy
-                        </label>
-                    </div>
-                </div>
+
                 <!-- Loading -->
                 <div class="khuon-loading" id="monthly-loading" style="display:none;">
                     <div class="spinner"></div>
