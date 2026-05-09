@@ -311,16 +311,23 @@
             // Hide the capture button during screenshot
             btn.style.visibility = 'hidden';
 
-            // Fix html2canvas border-collapse bug:
-            // Use border-separate + one-sided borders to avoid double lines
+            // ── Fix html2canvas border-collapse bug ──
+            // Switch to border-separate with one-sided borders so
+            // html2canvas draws every line exactly once.
             const savedTableStyle = table.getAttribute('style') || '';
             table.style.borderCollapse = 'separate';
             table.style.borderSpacing = '0';
-            table.style.borderTop = '2px solid #555';
-            table.style.borderLeft = '2px solid #555';
+            table.style.borderTop = '2px solid #333';
+            table.style.borderLeft = '2px solid #333';
             table.style.borderBottom = 'none';
             table.style.borderRight = 'none';
 
+            // Save and override EVERY cell's border.
+            // Row-class borders (.row-mixer td, .row-ngay td …) would
+            // otherwise add extra coloured border-bottom lines that shift
+            // because border-separate stacks borders differently than
+            // border-collapse.  We neutralise them with !important inline
+            // styles so every cell gets an identical, uniform grid.
             const cells = table.querySelectorAll('th, td');
             const savedCellStyles = [];
             cells.forEach(cell => {
@@ -328,10 +335,17 @@
                     el: cell,
                     style: cell.getAttribute('style') || '',
                 });
-                cell.style.borderTop = 'none';
-                cell.style.borderLeft = 'none';
-                cell.style.borderRight = '2px solid #555';
-                cell.style.borderBottom = '2px solid #555';
+                // Apply uniform one-sided borders (right + bottom only)
+                cell.style.setProperty('border-top',    'none',               'important');
+                cell.style.setProperty('border-left',   'none',               'important');
+                cell.style.setProperty('border-right',  '2px solid #555',     'important');
+                cell.style.setProperty('border-bottom', '2px solid #555',     'important');
+            });
+
+            // Give header cells and special rows slightly thicker borders
+            table.querySelectorAll('th').forEach(th => {
+                th.style.setProperty('border-right',  '2px solid #333', 'important');
+                th.style.setProperty('border-bottom', '2px solid #333', 'important');
             });
 
             // Replace input fields with plain text for clean capture
@@ -344,17 +358,42 @@
                 const span = document.createElement('span');
                 span.textContent = value;
                 span.className = 'capture-value-text';
-                span.style.cssText = 'font-size: 1.9rem; font-weight: 700; color: #1a1a1a;';
+                span.style.cssText = 'font-size: 30px; font-weight: 700; color: #1a1a1a;';
                 input.style.display = 'none';
                 cell.appendChild(span);
             });
 
+            // Convert all rem-based font-sizes to computed px values
+            // This avoids sub-pixel rendering artifacts in html2canvas
+            const allTextEls = el.querySelectorAll('*');
+            const savedFontStyles = [];
+            allTextEls.forEach(node => {
+                const computed = getComputedStyle(node);
+                const fs = computed.fontSize; // always in px
+                if (fs) {
+                    savedFontStyles.push({ el: node, orig: node.style.fontSize });
+                    node.style.fontSize = fs; // lock to exact px
+                }
+            });
+
+            // Wait for all fonts to be fully loaded (critical on Render
+            // where cold starts mean Google Fonts may still be streaming)
+            await document.fonts.ready;
+
             const canvas = await html2canvas(el, {
                 backgroundColor: '#ffffff',
-                scale: 2,
+                scale: 3,
                 useCORS: true,
                 logging: false,
                 allowTaint: true,
+                imageTimeout: 0,
+                onclone: function(clonedDoc) {
+                    // Ensure cloned document also has fonts loaded
+                    const clonedEl = clonedDoc.getElementById('capture-area');
+                    if (clonedEl) {
+                        clonedEl.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+                    }
+                },
             });
 
             // Restore inputs
@@ -364,11 +403,28 @@
                 if (span) span.remove();
             });
 
-            // Restore all styles
-            savedCellStyles.forEach(({ el, style }) => {
-                el.setAttribute('style', style);
+            // Restore font sizes (undo rem→px conversion)
+            savedFontStyles.forEach(({ el, orig }) => {
+                if (orig) {
+                    el.style.fontSize = orig;
+                } else {
+                    el.style.removeProperty('font-size');
+                }
             });
-            table.setAttribute('style', savedTableStyle);
+
+            // Restore all cell styles
+            savedCellStyles.forEach(({ el, style }) => {
+                if (style) {
+                    el.setAttribute('style', style);
+                } else {
+                    el.removeAttribute('style');
+                }
+            });
+            if (savedTableStyle) {
+                table.setAttribute('style', savedTableStyle);
+            } else {
+                table.removeAttribute('style');
+            }
 
             btn.style.visibility = 'visible';
 
