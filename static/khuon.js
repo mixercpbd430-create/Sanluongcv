@@ -165,10 +165,22 @@ function renderDailyTable() {
     for (let d = 1; d <= daysInMonth; d++) dayTotals[d] = 0;
     let sumTongThang = 0, sumTonTruoc = 0, sumTong = 0;
 
+    let lastPL = null;
+
     molds.forEach((m, idx) => {
         const isZero = m.tong_thang === 0;
         const tr = document.createElement('tr');
         if (isZero) tr.classList.add('row-zero');
+
+        // Add PL-specific row color class
+        const plNum = m._pl ? m._pl.replace('PL', '') : '';
+        if (plNum) tr.classList.add(`row-pl${plNum}`);
+
+        // Add separator for first row of each PL group
+        if (currentPL === 'ALL' && m._pl !== lastPL) {
+            tr.classList.add('pl-group-first');
+            lastPL = m._pl;
+        }
 
         let cells = `
             <td class="sticky-col col-stt">${idx + 1}</td>
@@ -279,10 +291,22 @@ function renderMonthlyTable() {
     for (let m = 1; m <= 12; m++) monthTotals[m] = 0;
     let yearGrandTotal = 0;
 
+    let lastPLMonthly = null;
+
     molds.forEach((m, idx) => {
         const isZero = m.year_total === 0;
         const tr = document.createElement('tr');
         if (isZero) tr.classList.add('row-zero');
+
+        // Add PL-specific row color class
+        const plNum = m._pl ? m._pl.replace('PL', '') : '';
+        if (plNum) tr.classList.add(`row-pl${plNum}`);
+
+        // Add separator for first row of each PL group
+        if (m._pl !== lastPLMonthly) {
+            tr.classList.add('pl-group-first');
+            lastPLMonthly = m._pl;
+        }
 
         let cells = `
             <td class="sticky-col col-stt">${idx + 1}</td>

@@ -9,6 +9,20 @@
 }
 
 /* --- View Tabs (Theo ngày / Theo tháng) --- */
+/* --- PL Filter + View Tabs Row --- */
+.pl-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.pl-filter-row .pl-filter {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
 .view-tabs {
     display: flex;
     gap: 4px;
@@ -16,8 +30,8 @@
     background: var(--bg-card);
     border-radius: var(--radius-lg);
     border: 1px solid var(--glass-border);
-    margin-bottom: 24px;
     width: fit-content;
+    flex-shrink: 0;
 }
 
 .view-tab {
@@ -62,7 +76,6 @@
     background: var(--bg-card);
     border-radius: var(--radius-lg);
     border: 1px solid var(--glass-border);
-    margin-bottom: 20px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -354,6 +367,47 @@
     display: none;
 }
 
+/* --- PL-specific row colors (subtle alternating tints) --- */
+.khuon-table tbody tr.row-pl1 td { background: rgba(99, 102, 241, 0.06); }   /* indigo */
+.khuon-table tbody tr.row-pl2 td { background: rgba(14, 165, 233, 0.06); }   /* sky */
+.khuon-table tbody tr.row-pl3 td { background: rgba(16, 185, 129, 0.06); }   /* emerald */
+.khuon-table tbody tr.row-pl4 td { background: rgba(245, 158, 11, 0.06); }   /* amber */
+.khuon-table tbody tr.row-pl5 td { background: rgba(236, 72, 153, 0.06); }   /* pink */
+.khuon-table tbody tr.row-pl6 td { background: rgba(139, 92, 246, 0.06); }   /* violet */
+.khuon-table tbody tr.row-pl7 td { background: rgba(6, 182, 212, 0.06); }    /* cyan */
+
+/* Sticky cols need opaque backgrounds with the tint baked in */
+.khuon-table tbody tr.row-pl1 td.sticky-col { background: rgba(15, 18, 35, 0.97); }
+.khuon-table tbody tr.row-pl2 td.sticky-col { background: rgba(13, 20, 35, 0.97); }
+.khuon-table tbody tr.row-pl3 td.sticky-col { background: rgba(13, 22, 30, 0.97); }
+.khuon-table tbody tr.row-pl4 td.sticky-col { background: rgba(20, 20, 28, 0.97); }
+.khuon-table tbody tr.row-pl5 td.sticky-col { background: rgba(20, 16, 28, 0.97); }
+.khuon-table tbody tr.row-pl6 td.sticky-col { background: rgba(17, 16, 30, 0.97); }
+.khuon-table tbody tr.row-pl7 td.sticky-col { background: rgba(13, 20, 32, 0.97); }
+
+/* PL group separator — thin top border on first row of each PL group */
+.khuon-table tbody tr.pl-group-first td {
+    border-top: 2px solid rgba(99, 102, 241, 0.2);
+}
+
+/* PL badge in the PL column — color-coded */
+.khuon-table tbody tr.row-pl1 td.col-pl { color: #818cf8; }   /* indigo */
+.khuon-table tbody tr.row-pl2 td.col-pl { color: #38bdf8; }   /* sky */
+.khuon-table tbody tr.row-pl3 td.col-pl { color: #34d399; }   /* emerald */
+.khuon-table tbody tr.row-pl4 td.col-pl { color: #fbbf24; }   /* amber */
+.khuon-table tbody tr.row-pl5 td.col-pl { color: #f472b6; }   /* pink */
+.khuon-table tbody tr.row-pl6 td.col-pl { color: #a78bfa; }   /* violet */
+.khuon-table tbody tr.row-pl7 td.col-pl { color: #22d3ee; }   /* cyan */
+
+/* Hover override for PL rows */
+.khuon-table tbody tr.row-pl1:hover td { background: rgba(99, 102, 241, 0.12); }
+.khuon-table tbody tr.row-pl2:hover td { background: rgba(14, 165, 233, 0.12); }
+.khuon-table tbody tr.row-pl3:hover td { background: rgba(16, 185, 129, 0.12); }
+.khuon-table tbody tr.row-pl4:hover td { background: rgba(245, 158, 11, 0.12); }
+.khuon-table tbody tr.row-pl5:hover td { background: rgba(236, 72, 153, 0.12); }
+.khuon-table tbody tr.row-pl6:hover td { background: rgba(139, 92, 246, 0.12); }
+.khuon-table tbody tr.row-pl7:hover td { background: rgba(6, 182, 212, 0.12); }
+
 /* --- Footer totals row --- */
 .khuon-table tfoot td {
     padding: 10px 6px;
@@ -443,6 +497,11 @@
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
+    .pl-filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
     .view-tabs {
         width: 100%;
     }
