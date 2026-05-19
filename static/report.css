@@ -612,3 +612,166 @@
         font-size: 1rem;
     }
 }
+
+/* --- Loss Summary Tables --- */
+.loss-summary-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 3px solid #333;
+}
+
+.loss-table-block {
+    margin-bottom: 24px;
+}
+
+.loss-table-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.loss-table-title svg {
+    flex-shrink: 0;
+    color: #b91c1c;
+}
+
+.loss-table-wrapper {
+    overflow-x: auto;
+}
+
+.loss-summary-table {
+    width: auto;
+    border-collapse: collapse;
+    font-size: 1.3rem;
+    border: 3px solid #333;
+    background: #ffffff;
+}
+
+.loss-summary-table th {
+    text-align: center;
+    padding: 10px 18px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1a1a1a;
+    background: #e8e8e8;
+    border: 2px solid #555;
+    white-space: nowrap;
+}
+
+.loss-summary-table td {
+    padding: 10px 18px;
+    border: 1.5px solid #999;
+    text-align: center;
+    color: #1a1a1a;
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.loss-row-label {
+    text-align: left !important;
+    font-weight: 700 !important;
+    color: #1a1a1a;
+    background: #f5f5f5;
+    border-right: 2px solid #555 !important;
+    white-space: nowrap;
+    min-width: 180px;
+}
+
+.loss-val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #b91c1c;
+    background: #fef2f2;
+    min-width: 80px;
+}
+
+.loss-total-val {
+    font-weight: 800 !important;
+    font-size: 1.4rem !important;
+    color: #7c2d12 !important;
+    background: #fde68a !important;
+    border-left: 2px solid #555 !important;
+}
+
+/* Machine header colors */
+.loss-mixer-header {
+    background: #fffbeb !important;
+    color: #b45309 !important;
+}
+
+.loss-pl67-header {
+    background: #f0fdf4 !important;
+    color: #15803d !important;
+}
+
+.loss-total-header {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    font-weight: 800 !important;
+}
+
+/* Monthly comparison row highlights */
+.loss-comparison-table .loss-month-row:nth-child(odd) td {
+    background: #fef2f2;
+}
+
+.loss-comparison-table .loss-month-row:nth-child(even) td {
+    background: #fff7ed;
+}
+
+.loss-comparison-table .loss-month-row td.loss-row-label {
+    background: #f5f5f5 !important;
+}
+
+.loss-comparison-table .loss-month-row td.loss-total-val {
+    background: #fde68a !important;
+}
+
+.loss-comparison-table .loss-month-current td {
+    background: #ecfdf5 !important;
+    font-weight: 800;
+}
+
+.loss-comparison-table .loss-month-current td.loss-row-label {
+    background: #d1fae5 !important;
+    color: #065f46;
+}
+
+.loss-comparison-table .loss-month-current td.loss-total-val {
+    background: #a7f3d0 !important;
+    color: #064e3b !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .loss-summary-table {
+        font-size: 0.8rem;
+    }
+
+    .loss-summary-table td, .loss-summary-table th {
+        padding: 6px 8px;
+    }
+
+    .loss-val {
+        font-size: 0.85rem;
+        min-width: 55px;
+    }
+
+    .loss-table-title {
+        font-size: 0.95rem;
+    }
+
+    .loss-row-label {
+        min-width: 120px;
+    }
+}

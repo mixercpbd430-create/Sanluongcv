@@ -93,6 +93,16 @@ function loadDayReport(day) {
         .catch(err => {
             console.error('Load NVVH/LOSS failed:', err);
         });
+
+    // 3) Load loss summary tables (daily, MTD, monthly comparison)
+    fetch(`/api/report/${day}/loss-summary?month=${SELECTED_MONTH}`)
+        .then(res => res.json())
+        .then(data => {
+            renderLossSummary(data);
+        })
+        .catch(err => {
+            console.error('Load loss summary failed:', err);
+        });
 }
 
 function fmtVal(num) {
@@ -309,4 +319,93 @@ function saveManualInput(field, value, inputEl) {
         console.error('Save failed:', err);
         inputEl.style.borderColor = '#ef4444';
     });
+}
+
+
+// ---- Loss Summary Tables ----
+
+function renderLossSummary(data) {
+    if (!data) return;
+
+    const parts = SELECTED_MONTH.split('-');
+    const monthNum = parseInt(parts[1]);
+    const year = parts[0];
+
+    // Table 1: Daily loss
+    const titleDaily = document.getElementById('loss-daily-title');
+    if (titleDaily) {
+        titleDaily.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            TỔNG KẾT LOSS TRONG NGÀY ${data.day}/${monthNum}/${year}`;
+    }
+    setLossTableRow('ld', data.daily);
+
+    // Table 2: Month-to-date loss
+    const titleMtd = document.getElementById('loss-mtd-title');
+    if (titleMtd) {
+        titleMtd.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            TỔNG KẾT LOSS TỪ NGÀY 1 ĐẾN NGÀY ${data.day} — THÁNG ${monthNum}/${year}`;
+    }
+    setLossTableRow('lm', data.mtd);
+
+    // Table 3: Monthly comparison
+    const compareBody = document.getElementById('loss-compare-body');
+    if (compareBody && data.monthly) {
+        compareBody.innerHTML = '';
+        const currentMonth = data.current_month;
+
+        // Get sorted month keys
+        const monthKeys = Object.keys(data.monthly).map(Number).sort((a, b) => a - b);
+
+        monthKeys.forEach(m => {
+            const mData = data.monthly[String(m)];
+            const isCurrent = (m === currentMonth);
+            const tr = document.createElement('tr');
+            tr.className = `loss-month-row${isCurrent ? ' loss-month-current' : ''}`;
+
+            // Label cell
+            const tdLabel = document.createElement('td');
+            tdLabel.className = 'loss-row-label';
+            tdLabel.textContent = `Tháng ${m}/${year}`;
+            if (isCurrent) tdLabel.textContent += ' ★';
+            tr.appendChild(tdLabel);
+
+            // Machine cells (0=Mixer, 1-7=PL)
+            let total = 0;
+            for (let pl = 0; pl <= 7; pl++) {
+                const td = document.createElement('td');
+                td.className = 'loss-val';
+                const val = mData[String(pl)] || 0;
+                td.textContent = val > 0 ? fmtTotalTime(val) : '-';
+                total += val;
+                tr.appendChild(td);
+            }
+
+            // Total cell
+            const tdTotal = document.createElement('td');
+            tdTotal.className = 'loss-val loss-total-val';
+            tdTotal.textContent = total > 0 ? fmtTotalTime(total) : '-';
+            tr.appendChild(tdTotal);
+
+            compareBody.appendChild(tr);
+        });
+    }
+}
+
+function setLossTableRow(prefix, lossData) {
+    if (!lossData) return;
+    let total = 0;
+    for (let pl = 0; pl <= 7; pl++) {
+        const el = document.getElementById(`${prefix}-${pl}`);
+        const val = lossData[String(pl)] || 0;
+        if (el) el.textContent = val > 0 ? fmtTotalTime(val) : '-';
+        total += val;
+    }
+    const totalEl = document.getElementById(`${prefix}-total`);
+    if (totalEl) totalEl.textContent = total > 0 ? fmtTotalTime(total) : '-';
 }

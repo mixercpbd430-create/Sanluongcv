@@ -427,6 +427,42 @@ def api_report_day_details(day):
     return jsonify(details)
 
 
+@app.route("/api/report/<int:day>/loss-summary")
+@login_required
+def api_loss_summary(day):
+    """JSON API: Loss summary tables (daily, MTD, monthly comparison)."""
+    result = get_all_data()
+    months = result["months"]
+    selected = request.args.get("month", months[0] if months else "")
+    parts = selected.split("-")
+    year_num = int(parts[0])
+    month_num = int(parts[1])
+
+    from database import (get_loss_daily_summary, get_loss_mtd_summary,
+                          get_loss_monthly_comparison)
+
+    # Table 1: Daily loss for the selected day
+    daily = get_loss_daily_summary(year_num, month_num, day)
+
+    # Table 2: Month-to-date loss (from day 1 to selected day)
+    mtd = get_loss_mtd_summary(year_num, month_num, day)
+
+    # Table 3: Monthly comparison (months 1 through current month)
+    compare_months = list(range(1, month_num + 1))
+    monthly = get_loss_monthly_comparison(year_num, compare_months)
+    # Convert int keys to string for JSON
+    monthly_str = {str(k): v for k, v in monthly.items()}
+
+    return jsonify({
+        "daily": daily,
+        "mtd": mtd,
+        "monthly": monthly_str,
+        "current_month": month_num,
+        "year": year_num,
+        "day": day,
+    })
+
+
 # ── Khuôn Tracking ────────────────────────────────────────
 
 def _load_khuon_for_month(year, month):

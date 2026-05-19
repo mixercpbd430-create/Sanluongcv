@@ -862,6 +862,83 @@ def get_loss_for_day(year, month, day):
     return result
 
 
+# ─── Loss Summary Statistics ──────────────────────────────
+
+def get_loss_daily_summary(year, month, day):
+    """Get total loss time (minutes) for each machine for a single day.
+    Returns: {0: total_minutes, 1: ..., 7: ...}  (0=Mixer, 1-7=PL)
+    """
+    conn = _get_conn()
+    cursor = _execute(conn, """
+        SELECT pl_num,
+               SUM(ca1_time + ca2_time + ca3_time) as total_time
+        FROM loss_notes
+        WHERE year=? AND month=? AND day=?
+        GROUP BY pl_num
+        ORDER BY pl_num
+    """, (year, month, day))
+    rows = _fetchall(cursor)
+    conn.close()
+
+    result = {i: 0 for i in range(0, 8)}
+    for row in rows:
+        pl = row['pl_num']
+        if pl in result:
+            result[pl] = int(row['total_time'] or 0)
+    return result
+
+
+def get_loss_mtd_summary(year, month, up_to_day):
+    """Get total loss time (minutes) for each machine from day 1 to up_to_day (month-to-date).
+    Returns: {0: total_minutes, 1: ..., 7: ...}  (0=Mixer, 1-7=PL)
+    """
+    conn = _get_conn()
+    cursor = _execute(conn, """
+        SELECT pl_num,
+               SUM(ca1_time + ca2_time + ca3_time) as total_time
+        FROM loss_notes
+        WHERE year=? AND month=? AND day>=1 AND day<=?
+        GROUP BY pl_num
+        ORDER BY pl_num
+    """, (year, month, up_to_day))
+    rows = _fetchall(cursor)
+    conn.close()
+
+    result = {i: 0 for i in range(0, 8)}
+    for row in rows:
+        pl = row['pl_num']
+        if pl in result:
+            result[pl] = int(row['total_time'] or 0)
+    return result
+
+
+def get_loss_monthly_comparison(year, months_list):
+    """Get total loss time (minutes) per machine per month for comparison.
+    months_list: list of month numbers, e.g. [1,2,3,4,5]
+    Returns: {month: {0: total, 1: total, ..., 7: total}, ...}
+    """
+    conn = _get_conn()
+    result = {}
+    for m in months_list:
+        cursor = _execute(conn, """
+            SELECT pl_num,
+                   SUM(ca1_time + ca2_time + ca3_time) as total_time
+            FROM loss_notes
+            WHERE year=? AND month=?
+            GROUP BY pl_num
+            ORDER BY pl_num
+        """, (year, m))
+        rows = _fetchall(cursor)
+        month_data = {i: 0 for i in range(0, 8)}
+        for row in rows:
+            pl = row['pl_num']
+            if pl in month_data:
+                month_data[pl] = int(row['total_time'] or 0)
+        result[m] = month_data
+    conn.close()
+    return result
+
+
 # ─── Khuôn Tracking ───────────────────────────────────────
 
 def save_khuon_data(data_dir, username, khuon_entries):
