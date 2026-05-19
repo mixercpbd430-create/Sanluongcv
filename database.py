@@ -888,6 +888,36 @@ def get_loss_daily_summary(year, month, day):
     return result
 
 
+def get_loss_daily_detail(year, month, day):
+    """Get detailed loss entries for each machine for a single day.
+    Aggregates counts and times across all CAs for each loss code.
+    Returns: {0: [{'code','desc','total_count','total_time'}, ...], 1: [...], ...}
+    """
+    conn = _get_conn()
+    cursor = _execute(conn, """
+        SELECT pl_num, code, description,
+               (ca1_count + ca2_count + ca3_count) as total_count,
+               (ca1_time + ca2_time + ca3_time) as total_time
+        FROM loss_notes
+        WHERE year=? AND month=? AND day=?
+        ORDER BY pl_num, code
+    """, (year, month, day))
+    rows = _fetchall(cursor)
+    conn.close()
+
+    result = {i: [] for i in range(0, 8)}
+    for row in rows:
+        pl = row['pl_num']
+        if pl in result:
+            result[pl].append({
+                'code': row['code'],
+                'desc': row['description'],
+                'total_count': int(row['total_count'] or 0),
+                'total_time': int(row['total_time'] or 0),
+            })
+    return result
+
+
 def get_loss_mtd_summary(year, month, up_to_day):
     """Get total loss time (minutes) for each machine from day 1 to up_to_day (month-to-date).
     Returns: {0: total_minutes, 1: ..., 7: ...}  (0=Mixer, 1-7=PL)

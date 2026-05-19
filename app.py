@@ -438,11 +438,14 @@ def api_loss_summary(day):
     year_num = int(parts[0])
     month_num = int(parts[1])
 
-    from database import (get_loss_daily_summary, get_loss_mtd_summary,
-                          get_loss_monthly_comparison)
+    from database import (get_loss_daily_summary, get_loss_daily_detail,
+                          get_loss_mtd_summary, get_loss_monthly_comparison)
 
-    # Table 1: Daily loss for the selected day
+    # Table 1: Daily loss detail for the selected day
     daily = get_loss_daily_summary(year_num, month_num, day)
+    daily_detail = get_loss_daily_detail(year_num, month_num, day)
+    # Convert int keys to string for JSON
+    daily_detail_str = {str(k): v for k, v in daily_detail.items()}
 
     # Table 2: Month-to-date loss (from day 1 to selected day)
     mtd = get_loss_mtd_summary(year_num, month_num, day)
@@ -455,6 +458,7 @@ def api_loss_summary(day):
 
     return jsonify({
         "daily": daily,
+        "daily_detail": daily_detail_str,
         "mtd": mtd,
         "monthly": monthly_str,
         "current_month": month_num,

@@ -645,6 +645,126 @@
     overflow-x: auto;
 }
 
+/* --- Loss Detail Table (Table 1 - per-machine breakdown) --- */
+.loss-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1.3rem;
+    border: 3px solid #333;
+    background: #ffffff;
+}
+
+.loss-detail-table th {
+    text-align: center;
+    padding: 10px 18px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1a1a1a;
+    background: #e8e8e8;
+    border: 2px solid #555;
+    white-space: nowrap;
+}
+
+.loss-detail-table td {
+    padding: 8px 14px;
+    border: 1.5px solid #999;
+    color: #1a1a1a;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+.ldt-col-machine { width: 100px; }
+.ldt-col-detail { min-width: 400px; }
+.ldt-col-time { width: 140px; }
+
+.ldt-machine-cell {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #0369a1;
+    background: #f0f9ff;
+    border-right: 2px solid #555;
+    white-space: nowrap;
+}
+
+.ldt-detail-cell {
+    text-align: left;
+    font-weight: 500;
+    font-size: 1.15rem;
+    color: #b91c1c;
+    background: #fff;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+.ldt-time-cell {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #b91c1c;
+    background: #fef2f2;
+    border-left: 2px solid #555;
+    white-space: nowrap;
+}
+
+/* Mixer row */
+.ldt-mixer .ldt-machine-cell {
+    background: #fffbeb;
+    color: #b45309;
+    font-weight: 800;
+}
+
+.ldt-mixer {
+    border-top: 2px solid #d97706;
+}
+
+/* PL6-7 rows */
+.ldt-pl67 .ldt-machine-cell {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+/* Total row */
+.ldt-total-row {
+    border-top: 3px solid #333;
+}
+
+.ldt-total-label {
+    text-align: right !important;
+    font-weight: 800 !important;
+    font-size: 1.3rem !important;
+    color: #1a1a1a !important;
+    background: #f5f5f5 !important;
+    padding-right: 24px !important;
+}
+
+.ldt-grand-total {
+    font-weight: 800 !important;
+    font-size: 1.4rem !important;
+    color: #7c2d12 !important;
+    background: #fde68a !important;
+}
+
+/* Alternate row shading */
+.ldt-row:nth-child(even) .ldt-detail-cell {
+    background: #fafafa;
+}
+
+@media (max-width: 768px) {
+    .loss-detail-table {
+        font-size: 0.8rem;
+    }
+    .loss-detail-table td, .loss-detail-table th {
+        padding: 6px 8px;
+    }
+    .ldt-col-detail { min-width: 200px; }
+    .ldt-detail-cell { font-size: 0.75rem; }
+    .ldt-machine-cell { font-size: 0.85rem; }
+}
+
 .loss-summary-table {
     width: auto;
     border-collapse: collapse;

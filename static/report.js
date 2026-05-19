@@ -331,7 +331,7 @@ function renderLossSummary(data) {
     const monthNum = parseInt(parts[1]);
     const year = parts[0];
 
-    // Table 1: Daily loss
+    // Table 1: Daily loss detail
     const titleDaily = document.getElementById('loss-daily-title');
     if (titleDaily) {
         titleDaily.innerHTML = `
@@ -340,7 +340,7 @@ function renderLossSummary(data) {
             </svg>
             TỔNG KẾT LOSS TRONG NGÀY ${data.day}/${monthNum}/${year}`;
     }
-    setLossTableRow('ld', data.daily);
+    renderDailyLossDetail(data.daily_detail, data.daily);
 
     // Table 2: Month-to-date loss
     const titleMtd = document.getElementById('loss-mtd-title');
@@ -408,4 +408,69 @@ function setLossTableRow(prefix, lossData) {
     }
     const totalEl = document.getElementById(`${prefix}-total`);
     if (totalEl) totalEl.textContent = total > 0 ? fmtTotalTime(total) : '-';
+}
+
+function renderDailyLossDetail(detail, dailyTotals) {
+    const body = document.getElementById('loss-daily-body');
+    if (!body) return;
+    body.innerHTML = '';
+
+    const machineNames = ['MIXER', 'PL1', 'PL2', 'PL3', 'PL4', 'PL5', 'PL6', 'PL7'];
+    const machineClasses = ['ldt-mixer', '', '', '', '', '', 'ldt-pl67', 'ldt-pl67'];
+    let grandTotal = 0;
+
+    for (let pl = 0; pl <= 7; pl++) {
+        const entries = (detail && detail[String(pl)]) ? detail[String(pl)] : [];
+        const totalTime = (dailyTotals && dailyTotals[String(pl)]) ? dailyTotals[String(pl)] : 0;
+        grandTotal += totalTime;
+
+        const tr = document.createElement('tr');
+        tr.className = `ldt-row ${machineClasses[pl]}`;
+
+        // Machine name cell
+        const tdMachine = document.createElement('td');
+        tdMachine.className = 'ldt-machine-cell';
+        tdMachine.textContent = machineNames[pl];
+        tr.appendChild(tdMachine);
+
+        // Detail cell
+        const tdDetail = document.createElement('td');
+        tdDetail.className = 'ldt-detail-cell';
+        if (entries.length > 0) {
+            const parts = entries.map(e => {
+                let s = `Loss ${e.code}: ${e.desc}`;
+                if (e.total_count > 0) s += `, ${e.total_count} lần`;
+                if (e.total_time > 0) s += `, ${e.total_time}'`;
+                return s;
+            });
+            tdDetail.textContent = parts.join(' | ');
+        } else {
+            tdDetail.textContent = '-';
+            tdDetail.style.textAlign = 'center';
+            tdDetail.style.color = '#9ca3af';
+        }
+        tr.appendChild(tdDetail);
+
+        // Total time cell
+        const tdTime = document.createElement('td');
+        tdTime.className = 'ldt-time-cell';
+        tdTime.textContent = totalTime > 0 ? fmtTotalTime(totalTime) : '-';
+        tr.appendChild(tdTime);
+
+        body.appendChild(tr);
+    }
+
+    // Grand total row
+    const trTotal = document.createElement('tr');
+    trTotal.className = 'ldt-row ldt-total-row';
+    const tdTotalLabel = document.createElement('td');
+    tdTotalLabel.className = 'ldt-machine-cell ldt-total-label';
+    tdTotalLabel.textContent = 'TỔNG';
+    tdTotalLabel.colSpan = 2;
+    trTotal.appendChild(tdTotalLabel);
+    const tdGrandTotal = document.createElement('td');
+    tdGrandTotal.className = 'ldt-time-cell ldt-grand-total';
+    tdGrandTotal.textContent = grandTotal > 0 ? fmtTotalTime(grandTotal) : '-';
+    trTotal.appendChild(tdGrandTotal);
+    body.appendChild(trTotal);
 }
