@@ -476,12 +476,32 @@ def save_uploaded_data(data_dir, username, entries, nvvh_entries=None, loss_entr
         except Exception as e:
             errors.append(f"NVVH day {nv.get('day')}: {str(e)}")
 
-    # LOSS data
+    # LOSS data — delete old entries first, then insert fresh data
+    # Group loss entries by (year, month, day, pl_num) to know which groups to clear
     loss_count = 0
+    loss_groups_cleared = set()
     for lo in (loss_entries or []):
         try:
-            params = (int(lo["year"]), int(lo["month"]), int(lo["day"]),
-                      int(lo["pl_num"]), lo["code"], lo.get("description", ""),
+            y, m, d, pl = int(lo["year"]), int(lo["month"]), int(lo["day"]), int(lo["pl_num"])
+            group_key = (y, m, d, pl)
+
+            # Delete all existing loss entries for this (year, month, day, pl_num)
+            # before inserting fresh data — prevents stale codes from lingering
+            if group_key not in loss_groups_cleared:
+                if _use_postgres():
+                    c = conn.cursor()
+                    c.execute("""
+                        DELETE FROM loss_notes
+                        WHERE year=%s AND month=%s AND day=%s AND pl_num=%s
+                    """, (y, m, d, pl))
+                else:
+                    _execute(conn, """
+                        DELETE FROM loss_notes
+                        WHERE year=? AND month=? AND day=? AND pl_num=?
+                    """, (y, m, d, pl))
+                loss_groups_cleared.add(group_key)
+
+            params = (y, m, d, pl, lo["code"], lo.get("description", ""),
                       int(lo.get("ca1_count", 0)), int(lo.get("ca1_time", 0)),
                       int(lo.get("ca2_count", 0)), int(lo.get("ca2_time", 0)),
                       int(lo.get("ca3_count", 0)), int(lo.get("ca3_time", 0)))
