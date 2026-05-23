@@ -215,12 +215,20 @@ def init_db(data_dir=None):
                 UNIQUE(pl_num, year, month, seri)
             )
         """)
-        # Create indexes (IF NOT EXISTS for PG)
-        c.execute("CREATE INDEX IF NOT EXISTS idx_production_month ON production(year, month)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_production_line_month ON production(line_name, year, month)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_nvvh_day ON nvvh(year, month, day)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_loss_day ON loss_notes(year, month, day)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_khuon_month ON khuon_tracking(year, month)")
+        # Create indexes — wrapped in try/except to handle race conditions
+        # when multiple gunicorn workers run init_db() simultaneously
+        for idx_sql in [
+            "CREATE INDEX IF NOT EXISTS idx_production_month ON production(year, month)",
+            "CREATE INDEX IF NOT EXISTS idx_production_line_month ON production(line_name, year, month)",
+            "CREATE INDEX IF NOT EXISTS idx_nvvh_day ON nvvh(year, month, day)",
+            "CREATE INDEX IF NOT EXISTS idx_loss_day ON loss_notes(year, month, day)",
+            "CREATE INDEX IF NOT EXISTS idx_khuon_month ON khuon_tracking(year, month)",
+        ]:
+            try:
+                c.execute(idx_sql)
+            except Exception:
+                conn.rollback()
+                c = conn.cursor()  # get a fresh cursor after rollback
     else:
         # SQLite syntax
         c.execute("""
