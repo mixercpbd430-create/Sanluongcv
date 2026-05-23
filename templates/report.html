@@ -396,7 +396,6 @@
         const AVAILABLE_MONTHS = {{ months | tojson | safe }};
         const DAYS_WITH_DATA = {{ days_with_data | tojson | safe }};
     </script>
-    <script src="/api/lib/h2c"></script>
     <script src="{{ url_for('static', filename='report.js') }}"></script>
     <script>
     async function captureReport() {
@@ -407,129 +406,288 @@
         txt.textContent = 'Đang chụp...';
 
         try {
-            const el = document.getElementById('capture-area');
-            const table = document.getElementById('report-table');
-            // Hide the capture button during screenshot
-            btn.style.visibility = 'hidden';
-
-            // ── Fix html2canvas border-collapse bug ──
-            // Switch to border-separate with one-sided borders so
-            // html2canvas draws every line exactly once.
-            const savedTableStyle = table.getAttribute('style') || '';
-            table.style.borderCollapse = 'separate';
-            table.style.borderSpacing = '0';
-            table.style.borderTop = '2px solid #333';
-            table.style.borderLeft = '2px solid #333';
-            table.style.borderBottom = 'none';
-            table.style.borderRight = 'none';
-
-            // Save and override EVERY cell's border.
-            // Row-class borders (.row-mixer td, .row-ngay td …) would
-            // otherwise add extra coloured border-bottom lines that shift
-            // because border-separate stacks borders differently than
-            // border-collapse.  We neutralise them with !important inline
-            // styles so every cell gets an identical, uniform grid.
-            const cells = table.querySelectorAll('th, td');
-            const savedCellStyles = [];
-            cells.forEach(cell => {
-                savedCellStyles.push({
-                    el: cell,
-                    style: cell.getAttribute('style') || '',
-                });
-                // Apply uniform one-sided borders (right + bottom only)
-                cell.style.setProperty('border-top',    'none',               'important');
-                cell.style.setProperty('border-left',   'none',               'important');
-                cell.style.setProperty('border-right',  '2px solid #555',     'important');
-                cell.style.setProperty('border-bottom', '2px solid #555',     'important');
-            });
-
-            // Give header cells and special rows slightly thicker borders
-            table.querySelectorAll('th').forEach(th => {
-                th.style.setProperty('border-right',  '2px solid #333', 'important');
-                th.style.setProperty('border-bottom', '2px solid #333', 'important');
-            });
-
-            // Replace input fields with plain text for clean capture
-            const inputs = el.querySelectorAll('.editable-cell input');
-            const savedInputs = [];
-            inputs.forEach(input => {
-                const cell = input.parentElement;
-                const value = input.value.trim() || '0';
-                savedInputs.push({ cell, input, value });
-                const span = document.createElement('span');
-                span.textContent = value;
-                span.className = 'capture-value-text';
-                span.style.cssText = 'font-size: 30px; font-weight: 700; color: #1a1a1a;';
-                input.style.display = 'none';
-                cell.appendChild(span);
-            });
-
-            // Convert all rem-based font-sizes to computed px values
-            // This avoids sub-pixel rendering artifacts in html2canvas
-            const allTextEls = el.querySelectorAll('*');
-            const savedFontStyles = [];
-            allTextEls.forEach(node => {
-                const computed = getComputedStyle(node);
-                const fs = computed.fontSize; // always in px
-                if (fs) {
-                    savedFontStyles.push({ el: node, orig: node.style.fontSize });
-                    node.style.fontSize = fs; // lock to exact px
-                }
-            });
-
-            // Wait for all fonts to be fully loaded (critical on Render
-            // where cold starts mean Google Fonts may still be streaming)
+            // Wait for fonts to be ready
             await document.fonts.ready;
 
-            const canvas = await html2canvas(el, {
-                backgroundColor: '#ffffff',
-                scale: 3,
-                useCORS: true,
-                logging: false,
-                allowTaint: true,
-                imageTimeout: 0,
-                onclone: function(clonedDoc) {
-                    // Ensure cloned document also has fonts loaded
-                    const clonedEl = clonedDoc.getElementById('capture-area');
-                    if (clonedEl) {
-                        clonedEl.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-                    }
-                },
-            });
+            // ── Read all data from the live DOM table ──
+            const titleEl = document.getElementById('report-title');
+            const titleText = titleEl ? titleEl.textContent.trim() : 'SẢN LƯỢNG';
+            const dayText = document.getElementById('cell-day').textContent.trim();
+            const saleInput = document.getElementById('sale-input');
+            const stockInput = document.getElementById('stock-input');
+            const saleVal = saleInput ? (saleInput.value.trim() || '0') : '0';
+            const stockVal = stockInput ? (stockInput.value.trim() || '0') : '0';
 
-            // Restore inputs
-            savedInputs.forEach(({ cell, input }) => {
-                input.style.display = '';
-                const span = cell.querySelector('.capture-value-text');
-                if (span) span.remove();
-            });
-
-            // Restore font sizes (undo rem→px conversion)
-            savedFontStyles.forEach(({ el, orig }) => {
-                if (orig) {
-                    el.style.fontSize = orig;
-                } else {
-                    el.style.removeProperty('font-size');
-                }
-            });
-
-            // Restore all cell styles
-            savedCellStyles.forEach(({ el, style }) => {
-                if (style) {
-                    el.setAttribute('style', style);
-                } else {
-                    el.removeAttribute('style');
-                }
-            });
-            if (savedTableStyle) {
-                table.setAttribute('style', savedTableStyle);
-            } else {
-                table.removeAttribute('style');
+            // Gather table data by reading cell text content
+            function getCellText(id) {
+                const el = document.getElementById(id);
+                return el ? el.textContent.trim() : '-';
             }
 
-            btn.style.visibility = 'visible';
+            const rows = [
+                {
+                    label: 'NGÀY', labelStyle: 'normal',
+                    type: 'day', dayValue: dayText,
+                    bgRow: '#eef2ff', borderBottom: '#4338ca', borderBottomWidth: 3
+                },
+                {
+                    label: 'MIXER FEEDMILL (TẤN)', labelStyle: 'mixer',
+                    target: '2200',
+                    ca1: getCellText('mixer-ca1'), ca2: getCellText('mixer-ca2'),
+                    ca3: getCellText('mixer-ca3'), total: getCellText('mixer-total'),
+                    bgRow: '#fffbeb', borderBottom: '#d97706', borderBottomWidth: 2
+                },
+                {
+                    label: 'SẢN LƯỢNG CÁM BỘT (TẤN)', labelStyle: 'normal',
+                    type: 'cambot', value: getCellText('cam-bot-val'),
+                    bgRow: '#f9fafb', borderBottom: '#9ca3af', borderBottomWidth: 2
+                },
+                {
+                    label: 'TOTAL PELLET', labelStyle: 'pellet',
+                    target: '2150',
+                    ca1: getCellText('tp-ca1'), ca2: getCellText('tp-ca2'),
+                    ca3: getCellText('tp-ca3'), total: getCellText('tp-total'),
+                    bgRow: '#ecfeff', borderBottom: '#0891b2', borderBottomWidth: 2
+                },
+                { label: 'PELLET 1', labelStyle: 'indent', target: '', ca1: getCellText('pl1-ca1'), ca2: getCellText('pl1-ca2'), ca3: getCellText('pl1-ca3'), total: getCellText('pl1-total'), bgRow: '#ffffff' },
+                { label: 'PELLET 2', labelStyle: 'indent', target: '', ca1: getCellText('pl2-ca1'), ca2: getCellText('pl2-ca2'), ca3: getCellText('pl2-ca3'), total: getCellText('pl2-total'), bgRow: '#e0f2fe' },
+                { label: 'PELLET 3', labelStyle: 'indent', target: '', ca1: getCellText('pl3-ca1'), ca2: getCellText('pl3-ca2'), ca3: getCellText('pl3-ca3'), total: getCellText('pl3-total'), bgRow: '#ffffff' },
+                { label: 'PELLET 4', labelStyle: 'indent', target: '', ca1: getCellText('pl4-ca1'), ca2: getCellText('pl4-ca2'), ca3: getCellText('pl4-ca3'), total: getCellText('pl4-total'), bgRow: '#fef9c3' },
+                { label: 'PELLET 5', labelStyle: 'indent', target: '', ca1: getCellText('pl5-ca1'), ca2: getCellText('pl5-ca2'), ca3: getCellText('pl5-ca3'), total: getCellText('pl5-total'), bgRow: '#ffffff' },
+                { label: 'PELLET 6', labelStyle: 'indent', target: '', ca1: getCellText('pl6-ca1'), ca2: getCellText('pl6-ca2'), ca3: getCellText('pl6-ca3'), total: getCellText('pl6-total'), bgRow: '#dcfce7' },
+                { label: 'PELLET 7', labelStyle: 'indent', target: '', ca1: getCellText('pl7-ca1'), ca2: getCellText('pl7-ca2'), ca3: getCellText('pl7-ca3'), total: getCellText('pl7-total'), bgRow: '#ffffff' },
+                {
+                    label: 'SALE (TẤN)', labelStyle: 'normal',
+                    type: 'sale', value: saleVal,
+                    bgRow: '#f9fafb', borderTop: '#555', borderTopWidth: 3
+                },
+                {
+                    label: 'STOCK (TẤN)', labelStyle: 'stock',
+                    type: 'stock', value: stockVal,
+                    bgRow: '#ffe4e6', borderTop: '#e11d48', borderTopWidth: 2
+                },
+            ];
 
-            // Convert to blob
+            // ── Canvas dimensions (at 1x, will be drawn at SCALE) ──
+            const SCALE = 3;
+            const COL_LABEL = 320;   // label column width
+            const COL_TARGET = 110;  // target column
+            const COL_CA = 100;      // ca1, ca2, ca3
+            const COL_TOTAL = 120;   // total column
+            const ROW_H = 56;        // row height
+            const HEADER_H = 50;     // header row height
+            const TITLE_H = 64;      // title bar height
+            const BORDER = 2;        // border width
+            const TABLE_W = COL_LABEL + COL_TARGET + COL_CA * 3 + COL_TOTAL;
+            const TABLE_H = TITLE_H + HEADER_H + ROW_H * rows.length;
+            const PAD = 24;          // padding around table
+
+            const canvasW = TABLE_W + PAD * 2;
+            const canvasH = TABLE_H + PAD * 2;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasW * SCALE;
+            canvas.height = canvasH * SCALE;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(SCALE, SCALE);
+
+            // Ensure crisp text
+            ctx.imageSmoothingEnabled = false;
+            ctx.textBaseline = 'middle';
+
+            // ── Background ──
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            const ox = PAD; // origin x
+            const oy = PAD; // origin y
+
+            // ── Helper: draw filled rect ──
+            function fillRect(x, y, w, h, color) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+            }
+
+            // ── Helper: draw border line ──
+            function drawLine(x1, y1, x2, y2, color, width) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+
+            // ── Helper: draw text centered in a rect ──
+            function drawTextCenter(text, x, y, w, h, font, color) {
+                ctx.fillStyle = color;
+                ctx.font = font;
+                ctx.textAlign = 'center';
+                ctx.fillText(text, x + w / 2, y + h / 2);
+            }
+
+            // ── Helper: draw text left-aligned in a rect ──
+            function drawTextLeft(text, x, y, w, h, font, color, paddingLeft) {
+                ctx.fillStyle = color;
+                ctx.font = font;
+                ctx.textAlign = 'left';
+                ctx.fillText(text, x + (paddingLeft || 16), y + h / 2);
+            }
+
+            // ── Column x positions ──
+            const colX = [
+                ox,                                          // label
+                ox + COL_LABEL,                              // target
+                ox + COL_LABEL + COL_TARGET,                 // ca1
+                ox + COL_LABEL + COL_TARGET + COL_CA,        // ca2
+                ox + COL_LABEL + COL_TARGET + COL_CA * 2,    // ca3
+                ox + COL_LABEL + COL_TARGET + COL_CA * 3,    // total
+            ];
+            const colW = [COL_LABEL, COL_TARGET, COL_CA, COL_CA, COL_CA, COL_TOTAL];
+
+            // ── 1. Draw Title ──
+            fillRect(ox, oy, TABLE_W, TITLE_H, '#ffffff');
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = 'bold 28px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(titleText, ox + 16, oy + TITLE_H / 2);
+
+            // ── 2. Draw Header Row ──
+            const headerY = oy + TITLE_H;
+            const headers = ['', 'TARGET', 'CA 1', 'CA 2', 'CA 3', 'TOTAL'];
+            for (let c = 0; c < 6; c++) {
+                fillRect(colX[c], headerY, colW[c], HEADER_H, '#e8e8e8');
+                if (headers[c]) {
+                    drawTextCenter(headers[c], colX[c], headerY, colW[c], HEADER_H,
+                        'bold 18px Inter, sans-serif', '#1a1a1a');
+                }
+            }
+
+            // Header borders
+            drawLine(ox, headerY, ox + TABLE_W, headerY, '#333', 2);
+            drawLine(ox, headerY + HEADER_H, ox + TABLE_W, headerY + HEADER_H, '#333', 2);
+            for (let c = 0; c <= 6; c++) {
+                const x = c < 6 ? colX[c] : ox + TABLE_W;
+                drawLine(x, headerY, x, headerY + HEADER_H, '#333', 2);
+            }
+
+            // ── 3. Draw Data Rows ──
+            for (let r = 0; r < rows.length; r++) {
+                const row = rows[r];
+                const ry = headerY + HEADER_H + r * ROW_H;
+
+                // Row background
+                fillRect(ox, ry, TABLE_W, ROW_H, row.bgRow || '#ffffff');
+                // Label cell background
+                fillRect(colX[0], ry, COL_LABEL, ROW_H, '#f5f5f5');
+
+                // ── Label styling ──
+                let labelFont = 'bold 19px Inter, sans-serif';
+                let labelColor = '#1a1a1a';
+                let labelBg = '#f5f5f5';
+                let labelPadLeft = 16;
+
+                if (row.labelStyle === 'mixer') {
+                    labelFont = '800 21px Inter, sans-serif';
+                    labelColor = '#b45309';
+                    labelBg = '#fef3c7';
+                } else if (row.labelStyle === 'pellet') {
+                    labelFont = '800 21px Inter, sans-serif';
+                    labelColor = '#0369a1';
+                    labelBg = '#e0f2fe';
+                } else if (row.labelStyle === 'stock') {
+                    labelFont = '800 21px Inter, sans-serif';
+                    labelColor = '#be123c';
+                    labelBg = '#ffe4e6';
+                } else if (row.labelStyle === 'indent') {
+                    labelPadLeft = 40;
+                    labelFont = '600 19px Inter, sans-serif';
+                    labelColor = '#333';
+                }
+
+                // Draw label cell bg
+                fillRect(colX[0], ry, COL_LABEL, ROW_H, labelBg);
+                drawTextLeft(row.label, colX[0], ry, COL_LABEL, ROW_H, labelFont, labelColor, labelPadLeft);
+
+                // ── Content cells ──
+                if (row.type === 'day') {
+                    // Day row: colspan 5, centered, big number
+                    const spanX = colX[1];
+                    const spanW = COL_TARGET + COL_CA * 3 + COL_TOTAL;
+                    fillRect(spanX, ry, spanW, ROW_H, row.bgRow);
+                    drawTextCenter(row.dayValue, spanX, ry, spanW, ROW_H,
+                        'bold 36px Inter, sans-serif', '#4338ca');
+                } else if (row.type === 'cambot') {
+                    // Cám bột: colspan 5, centered
+                    const spanX = colX[1];
+                    const spanW = COL_TARGET + COL_CA * 3 + COL_TOTAL;
+                    fillRect(spanX, ry, spanW, ROW_H, row.bgRow);
+                    drawTextCenter(row.value, spanX, ry, spanW, ROW_H,
+                        '600 20px Inter, sans-serif', '#1a1a1a');
+                } else if (row.type === 'sale' || row.type === 'stock') {
+                    // SALE/STOCK: colspan 5, centered, bold
+                    const spanX = colX[1];
+                    const spanW = COL_TARGET + COL_CA * 3 + COL_TOTAL;
+                    fillRect(spanX, ry, spanW, ROW_H, row.bgRow);
+                    drawTextCenter(row.value, spanX, ry, spanW, ROW_H,
+                        'bold 24px Inter, sans-serif', '#1a1a1a');
+                } else {
+                    // Standard row: target + ca1-3 + total
+                    // Target
+                    drawTextCenter(row.target || '', colX[1], ry, colW[1], ROW_H,
+                        'bold 20px Inter, sans-serif', '#7c3aed');
+                    // CA 1-3
+                    drawTextCenter(row.ca1, colX[2], ry, colW[2], ROW_H,
+                        '600 20px Inter, sans-serif', '#1a1a1a');
+                    drawTextCenter(row.ca2, colX[3], ry, colW[3], ROW_H,
+                        '600 20px Inter, sans-serif', '#1a1a1a');
+                    drawTextCenter(row.ca3, colX[4], ry, colW[4], ROW_H,
+                        '600 20px Inter, sans-serif', '#1a1a1a');
+                    // Total
+                    drawTextCenter(row.total, colX[5], ry, colW[5], ROW_H,
+                        'bold 22px Inter, sans-serif', '#059669');
+                }
+
+                // ── Row-specific colored border-bottom ──
+                if (row.borderBottom) {
+                    drawLine(ox, ry + ROW_H, ox + TABLE_W, ry + ROW_H,
+                        row.borderBottom, row.borderBottomWidth || 2);
+                }
+                // ── Row-specific colored border-top ──
+                if (row.borderTop) {
+                    drawLine(ox, ry, ox + TABLE_W, ry,
+                        row.borderTop, row.borderTopWidth || 2);
+                }
+            }
+
+            // ── 4. Draw Grid Lines ──
+            const dataEndY = headerY + HEADER_H + rows.length * ROW_H;
+
+            // Outer border
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(ox, oy + TITLE_H, TABLE_W, HEADER_H + rows.length * ROW_H);
+
+            // Vertical column separators
+            for (let c = 1; c < 6; c++) {
+                const lineColor = c === 1 ? '#555' : '#999';
+                const lineW = c === 1 ? 2 : 1.5;
+                drawLine(colX[c], headerY, colX[c], dataEndY, lineColor, lineW);
+            }
+
+            // Horizontal row separators
+            for (let r = 0; r < rows.length; r++) {
+                const ry = headerY + HEADER_H + r * ROW_H;
+                // Skip if the row already has a custom border
+                if (!rows[r].borderBottom && !rows[r].borderTop) {
+                    drawLine(ox, ry, ox + TABLE_W, ry, '#ccc', 1);
+                }
+            }
+
+            // Label column right border (stronger)
+            drawLine(colX[0] + COL_LABEL, headerY, colX[0] + COL_LABEL, dataEndY, '#555', 2);
+
+            // ── 5. Export ──
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 
             // Try clipboard first
@@ -541,11 +699,10 @@
                 btn.classList.add('capture-success');
             } catch (clipErr) {
                 console.warn('Clipboard failed, downloading instead:', clipErr);
-                // Fallback: download file
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `baocao_ngay${document.getElementById('cell-day').textContent.trim()}.png`;
+                a.download = `baocao_ngay${dayText}.png`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -562,7 +719,6 @@
 
         } catch (err) {
             console.error('Capture error:', err);
-            btn.style.visibility = 'visible';
             txt.textContent = '❌ Lỗi!';
             setTimeout(() => { txt.textContent = orig; btn.disabled = false; }, 2000);
         }
