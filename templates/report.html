@@ -415,110 +415,18 @@
         txt.textContent = 'Đang chụp...';
 
         try {
-            // Wait for fonts to be ready
             await document.fonts.ready;
 
-            // ── Read all data from the live DOM table ──
-            const titleEl = document.getElementById('report-title');
-            const titleText = titleEl ? titleEl.textContent.trim() : 'SẢN LƯỢNG';
-            const dayText = document.getElementById('cell-day').textContent.trim();
-            const saleInput = document.getElementById('sale-input');
-            const stockInput = document.getElementById('stock-input');
-            const saleVal = saleInput ? (saleInput.value.trim() || '0') : '0';
-            const stockVal = stockInput ? (stockInput.value.trim() || '0') : '0';
-
-            // Gather table data by reading cell text content
+            // ── Shared helpers ──
             function getCellText(id) {
                 const el = document.getElementById(id);
                 return el ? el.textContent.trim() : '-';
             }
-
-            const rows = [
-                {
-                    label: 'NGÀY', labelStyle: 'normal',
-                    type: 'day', dayValue: dayText,
-                    bgRow: '#eef2ff', borderBottom: '#4338ca', borderBottomWidth: 3
-                },
-                {
-                    label: 'MIXER FEEDMILL (TẤN)', labelStyle: 'mixer',
-                    target: '2200',
-                    ca1: getCellText('mixer-ca1'), ca2: getCellText('mixer-ca2'),
-                    ca3: getCellText('mixer-ca3'), total: getCellText('mixer-total'),
-                    bgRow: '#fffbeb', borderBottom: '#d97706', borderBottomWidth: 2
-                },
-                {
-                    label: 'SẢN LƯỢNG CÁM BỘT (TẤN)', labelStyle: 'normal',
-                    type: 'cambot', value: getCellText('cam-bot-val'),
-                    bgRow: '#f9fafb', borderBottom: '#9ca3af', borderBottomWidth: 2
-                },
-                {
-                    label: 'TOTAL PELLET', labelStyle: 'pellet',
-                    target: '2150',
-                    ca1: getCellText('tp-ca1'), ca2: getCellText('tp-ca2'),
-                    ca3: getCellText('tp-ca3'), total: getCellText('tp-total'),
-                    bgRow: '#ecfeff', borderBottom: '#0891b2', borderBottomWidth: 2
-                },
-                { label: 'PELLET 1', labelStyle: 'indent', target: '', ca1: getCellText('pl1-ca1'), ca2: getCellText('pl1-ca2'), ca3: getCellText('pl1-ca3'), total: getCellText('pl1-total'), bgRow: '#ffffff' },
-                { label: 'PELLET 2', labelStyle: 'indent', target: '', ca1: getCellText('pl2-ca1'), ca2: getCellText('pl2-ca2'), ca3: getCellText('pl2-ca3'), total: getCellText('pl2-total'), bgRow: '#e0f2fe' },
-                { label: 'PELLET 3', labelStyle: 'indent', target: '', ca1: getCellText('pl3-ca1'), ca2: getCellText('pl3-ca2'), ca3: getCellText('pl3-ca3'), total: getCellText('pl3-total'), bgRow: '#ffffff' },
-                { label: 'PELLET 4', labelStyle: 'indent', target: '', ca1: getCellText('pl4-ca1'), ca2: getCellText('pl4-ca2'), ca3: getCellText('pl4-ca3'), total: getCellText('pl4-total'), bgRow: '#fef9c3' },
-                { label: 'PELLET 5', labelStyle: 'indent', target: '', ca1: getCellText('pl5-ca1'), ca2: getCellText('pl5-ca2'), ca3: getCellText('pl5-ca3'), total: getCellText('pl5-total'), bgRow: '#ffffff' },
-                { label: 'PELLET 6', labelStyle: 'indent', target: '', ca1: getCellText('pl6-ca1'), ca2: getCellText('pl6-ca2'), ca3: getCellText('pl6-ca3'), total: getCellText('pl6-total'), bgRow: '#dcfce7' },
-                { label: 'PELLET 7', labelStyle: 'indent', target: '', ca1: getCellText('pl7-ca1'), ca2: getCellText('pl7-ca2'), ca3: getCellText('pl7-ca3'), total: getCellText('pl7-total'), bgRow: '#ffffff' },
-                {
-                    label: 'SALE (TẤN)', labelStyle: 'normal',
-                    type: 'sale', value: saleVal,
-                    bgRow: '#f9fafb', borderTop: '#555', borderTopWidth: 3
-                },
-                {
-                    label: 'STOCK (TẤN)', labelStyle: 'stock',
-                    type: 'stock', value: stockVal,
-                    bgRow: '#ffe4e6', borderTop: '#e11d48', borderTopWidth: 2
-                },
-            ];
-
-            // ── Canvas dimensions (at 1x, will be drawn at SCALE) ──
-            const SCALE = 3;
-            const COL_LABEL = 320;   // label column width
-            const COL_TARGET = 110;  // target column
-            const COL_CA = 100;      // ca1, ca2, ca3
-            const COL_TOTAL = 120;   // total column
-            const ROW_H = 56;        // row height
-            const HEADER_H = 50;     // header row height
-            const TITLE_H = 64;      // title bar height
-            const BORDER = 2;        // border width
-            const TABLE_W = COL_LABEL + COL_TARGET + COL_CA * 3 + COL_TOTAL;
-            const TABLE_H = TITLE_H + HEADER_H + ROW_H * rows.length;
-            const PAD = 24;          // padding around table
-
-            const canvasW = TABLE_W + PAD * 2;
-            const canvasH = TABLE_H + PAD * 2;
-
-            const canvas = document.createElement('canvas');
-            canvas.width = canvasW * SCALE;
-            canvas.height = canvasH * SCALE;
-            const ctx = canvas.getContext('2d');
-            ctx.scale(SCALE, SCALE);
-
-            // Ensure crisp text
-            ctx.imageSmoothingEnabled = false;
-            ctx.textBaseline = 'middle';
-
-            // ── Background ──
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvasW, canvasH);
-
-            const ox = PAD; // origin x
-            const oy = PAD; // origin y
-
-            // ── Helper: draw filled rect ──
-            function fillRect(x, y, w, h, color) {
+            function fillRect(ctx, x, y, w, h, color) {
                 ctx.fillStyle = color;
                 ctx.fillRect(x, y, w, h);
             }
-
-            // ── Helper: draw border line ──
-            function drawLine(x1, y1, x2, y2, color, width) {
+            function drawLine(ctx, x1, y1, x2, y2, color, width) {
                 ctx.strokeStyle = color;
                 ctx.lineWidth = width;
                 ctx.beginPath();
@@ -526,205 +434,314 @@
                 ctx.lineTo(x2, y2);
                 ctx.stroke();
             }
-
-            // ── Helper: draw text centered in a rect ──
-            function drawTextCenter(text, x, y, w, h, font, color) {
+            function drawTextCenter(ctx, text, x, y, w, h, font, color) {
                 ctx.fillStyle = color;
                 ctx.font = font;
                 ctx.textAlign = 'center';
                 ctx.fillText(text, x + w / 2, y + h / 2);
             }
-
-            // ── Helper: draw text left-aligned in a rect ──
-            function drawTextLeft(text, x, y, w, h, font, color, paddingLeft) {
+            function drawTextLeft(ctx, text, x, y, w, h, font, color, padL) {
                 ctx.fillStyle = color;
                 ctx.font = font;
                 ctx.textAlign = 'left';
-                ctx.fillText(text, x + (paddingLeft || 16), y + h / 2);
+                ctx.fillText(text, x + (padL || 16), y + h / 2);
+            }
+            function wrapText(ctx, text, maxWidth, font) {
+                ctx.font = font;
+                if (!text || text === '-') return [text || '-'];
+                const words = text.split(' ');
+                const lines = [];
+                let cur = '';
+                for (const w of words) {
+                    const test = cur ? cur + ' ' + w : w;
+                    if (ctx.measureText(test).width > maxWidth) {
+                        if (cur) lines.push(cur);
+                        cur = w;
+                    } else { cur = test; }
+                }
+                if (cur) lines.push(cur);
+                return lines.length ? lines : ['-'];
             }
 
-            // ── Column x positions ──
-            const colX = [
-                ox,                                          // label
-                ox + COL_LABEL,                              // target
-                ox + COL_LABEL + COL_TARGET,                 // ca1
-                ox + COL_LABEL + COL_TARGET + COL_CA,        // ca2
-                ox + COL_LABEL + COL_TARGET + COL_CA * 2,    // ca3
-                ox + COL_LABEL + COL_TARGET + COL_CA * 3,    // total
+            // ══════════════════════════════════════════
+            //  PART A: Production Table Data
+            // ══════════════════════════════════════════
+            const titleEl = document.getElementById('report-title');
+            const titleText = titleEl ? titleEl.textContent.trim() : 'SẢN LƯỢNG';
+            const dayText = document.getElementById('cell-day').textContent.trim();
+            const saleVal = document.getElementById('sale-input')?.value.trim() || '0';
+            const stockVal = document.getElementById('stock-input')?.value.trim() || '0';
+
+            const prodRows = [
+                { label: 'NGÀY', labelStyle: 'normal', type: 'day', dayValue: dayText, bgRow: '#eef2ff', borderBottom: '#4338ca', borderBottomWidth: 3 },
+                { label: 'MIXER FEEDMILL (TẤN)', labelStyle: 'mixer', target: '2200', ca1: getCellText('mixer-ca1'), ca2: getCellText('mixer-ca2'), ca3: getCellText('mixer-ca3'), total: getCellText('mixer-total'), bgRow: '#fffbeb', borderBottom: '#d97706', borderBottomWidth: 2 },
+                { label: 'SẢN LƯỢNG CÁM BỘT (TẤN)', labelStyle: 'normal', type: 'cambot', value: getCellText('cam-bot-val'), bgRow: '#f9fafb', borderBottom: '#9ca3af', borderBottomWidth: 2 },
+                { label: 'TOTAL PELLET', labelStyle: 'pellet', target: '2150', ca1: getCellText('tp-ca1'), ca2: getCellText('tp-ca2'), ca3: getCellText('tp-ca3'), total: getCellText('tp-total'), bgRow: '#ecfeff', borderBottom: '#0891b2', borderBottomWidth: 2 },
+                { label: 'PELLET 1', labelStyle: 'indent', target: '', ca1: getCellText('pl1-ca1'), ca2: getCellText('pl1-ca2'), ca3: getCellText('pl1-ca3'), total: getCellText('pl1-total'), bgRow: '#ffffff' },
+                { label: 'PELLET 2', labelStyle: 'indent', target: '', ca1: getCellText('pl2-ca1'), ca2: getCellText('pl2-ca2'), ca3: getCellText('pl2-ca3'), total: getCellText('pl2-total'), bgRow: '#e0f2fe' },
+                { label: 'PELLET 3', labelStyle: 'indent', target: '', ca1: getCellText('pl3-ca1'), ca2: getCellText('pl3-ca2'), ca3: getCellText('pl3-ca3'), total: getCellText('pl3-total'), bgRow: '#ffffff' },
+                { label: 'PELLET 4', labelStyle: 'indent', target: '', ca1: getCellText('pl4-ca1'), ca2: getCellText('pl4-ca2'), ca3: getCellText('pl4-ca3'), total: getCellText('pl4-total'), bgRow: '#fef9c3' },
+                { label: 'PELLET 5', labelStyle: 'indent', target: '', ca1: getCellText('pl5-ca1'), ca2: getCellText('pl5-ca2'), ca3: getCellText('pl5-ca3'), total: getCellText('pl5-total'), bgRow: '#ffffff' },
+                { label: 'PELLET 6', labelStyle: 'indent', target: '', ca1: getCellText('pl6-ca1'), ca2: getCellText('pl6-ca2'), ca3: getCellText('pl6-ca3'), total: getCellText('pl6-total'), bgRow: '#dcfce7' },
+                { label: 'PELLET 7', labelStyle: 'indent', target: '', ca1: getCellText('pl7-ca1'), ca2: getCellText('pl7-ca2'), ca3: getCellText('pl7-ca3'), total: getCellText('pl7-total'), bgRow: '#ffffff' },
+                { label: 'SALE (TẤN)', labelStyle: 'normal', type: 'sale', value: saleVal, bgRow: '#f9fafb', borderTop: '#555', borderTopWidth: 3 },
+                { label: 'STOCK (TẤN)', labelStyle: 'stock', type: 'stock', value: stockVal, bgRow: '#ffe4e6', borderTop: '#e11d48', borderTopWidth: 2 },
             ];
+
+            // Production table dimensions
+            const SCALE = 3;
+            const COL_LABEL = 320, COL_TARGET = 110, COL_CA = 100, COL_TOTAL = 120;
+            const ROW_H = 56, HEADER_H = 50, TITLE_H = 64;
+            const PROD_W = COL_LABEL + COL_TARGET + COL_CA * 3 + COL_TOTAL;
+            const PROD_H = TITLE_H + HEADER_H + ROW_H * prodRows.length;
+
+            // ══════════════════════════════════════════
+            //  PART B: Loss Daily Table Data
+            // ══════════════════════════════════════════
+            const lossTitleEl = document.getElementById('loss-daily-title');
+            const lossTitleText = lossTitleEl ? lossTitleEl.textContent.trim() : 'TỔNG KẾT LOSS TRONG NGÀY';
+
+            const lossBodyRows = document.querySelectorAll('#loss-daily-body tr');
+            const lossData = [];
+            lossBodyRows.forEach(tr => {
+                const cells = tr.querySelectorAll('td');
+                if (cells.length === 3) {
+                    lossData.push({
+                        type: 'normal',
+                        machine: cells[0].textContent.trim(),
+                        detail: cells[1].textContent.trim(),
+                        time: cells[2].textContent.trim(),
+                        isMixer: tr.classList.contains('ldt-mixer'),
+                        isPl67: tr.classList.contains('ldt-pl67')
+                    });
+                } else if (cells.length === 2) {
+                    lossData.push({
+                        type: 'total',
+                        label: cells[0].textContent.trim(),
+                        time: cells[1].textContent.trim()
+                    });
+                }
+            });
+
+            // Loss table dimensions
+            const L_COL_MACHINE = 100, L_COL_DETAIL = 560, L_COL_TIME = 140;
+            const L_TABLE_W = L_COL_MACHINE + L_COL_DETAIL + L_COL_TIME;
+            const L_HEADER_H = 44, L_TITLE_H = 56;
+            const L_LINE_H = 20, L_CELL_PAD_V = 12, L_CELL_PAD_H = 14;
+            const L_DETAIL_FONT = '500 13px Inter, sans-serif';
+            const L_DETAIL_MAX_W = L_COL_DETAIL - L_CELL_PAD_H * 2;
+
+            // Pre-calculate loss row heights with text wrapping
+            const measureCanvas = document.createElement('canvas');
+            const mctx = measureCanvas.getContext('2d');
+            const lossRowHeights = [];
+            const lossWrappedLines = [];
+            for (const row of lossData) {
+                if (row.type === 'total') {
+                    lossRowHeights.push(48);
+                    lossWrappedLines.push([]);
+                } else {
+                    const lines = wrapText(mctx, row.detail, L_DETAIL_MAX_W, L_DETAIL_FONT);
+                    const rowH = Math.max(44, lines.length * L_LINE_H + L_CELL_PAD_V * 2);
+                    lossRowHeights.push(rowH);
+                    lossWrappedLines.push(lines);
+                }
+            }
+            const lossTotalRowH = lossRowHeights.reduce((a, b) => a + b, 0);
+            const LOSS_H = L_TITLE_H + L_HEADER_H + lossTotalRowH;
+
+            // ══════════════════════════════════════════
+            //  CANVAS: Combined
+            // ══════════════════════════════════════════
+            const PAD = 24;
+            const GAP = 32; // gap between production and loss tables
+            const maxTableW = Math.max(PROD_W, L_TABLE_W);
+            const canvasW = maxTableW + PAD * 2;
+            const canvasH = PROD_H + GAP + LOSS_H + PAD * 2;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasW * SCALE;
+            canvas.height = canvasH * SCALE;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(SCALE, SCALE);
+            ctx.imageSmoothingEnabled = false;
+            ctx.textBaseline = 'middle';
+
+            // Background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            const ox = PAD;
+
+            // ══════════════════════════════════════════
+            //  DRAW A: Production Table
+            // ══════════════════════════════════════════
+            const prodOY = PAD;
+            const colX = [ox, ox+COL_LABEL, ox+COL_LABEL+COL_TARGET, ox+COL_LABEL+COL_TARGET+COL_CA, ox+COL_LABEL+COL_TARGET+COL_CA*2, ox+COL_LABEL+COL_TARGET+COL_CA*3];
             const colW = [COL_LABEL, COL_TARGET, COL_CA, COL_CA, COL_CA, COL_TOTAL];
 
-            // ── 1. Draw Title ──
-            fillRect(ox, oy, TABLE_W, TITLE_H, '#ffffff');
+            // Title
             ctx.fillStyle = '#1a1a1a';
             ctx.font = 'bold 28px Inter, sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText(titleText, ox + 16, oy + TITLE_H / 2);
+            ctx.fillText(titleText, ox + 16, prodOY + TITLE_H / 2);
 
-            // ── 2. Draw Header Row ──
-            const headerY = oy + TITLE_H;
-            const headers = ['', 'TARGET', 'CA 1', 'CA 2', 'CA 3', 'TOTAL'];
+            // Header
+            const phY = prodOY + TITLE_H;
+            const pHeaders = ['', 'TARGET', 'CA 1', 'CA 2', 'CA 3', 'TOTAL'];
             for (let c = 0; c < 6; c++) {
-                fillRect(colX[c], headerY, colW[c], HEADER_H, '#e8e8e8');
-                if (headers[c]) {
-                    drawTextCenter(headers[c], colX[c], headerY, colW[c], HEADER_H,
-                        'bold 18px Inter, sans-serif', '#1a1a1a');
-                }
+                fillRect(ctx, colX[c], phY, colW[c], HEADER_H, '#e8e8e8');
+                if (pHeaders[c]) drawTextCenter(ctx, pHeaders[c], colX[c], phY, colW[c], HEADER_H, 'bold 18px Inter, sans-serif', '#1a1a1a');
             }
+            drawLine(ctx, ox, phY, ox+PROD_W, phY, '#333', 2);
+            drawLine(ctx, ox, phY+HEADER_H, ox+PROD_W, phY+HEADER_H, '#333', 2);
+            for (let c = 0; c <= 6; c++) { drawLine(ctx, c<6?colX[c]:ox+PROD_W, phY, c<6?colX[c]:ox+PROD_W, phY+HEADER_H, '#333', 2); }
 
-            // Header borders
-            drawLine(ox, headerY, ox + TABLE_W, headerY, '#333', 2);
-            drawLine(ox, headerY + HEADER_H, ox + TABLE_W, headerY + HEADER_H, '#333', 2);
-            for (let c = 0; c <= 6; c++) {
-                const x = c < 6 ? colX[c] : ox + TABLE_W;
-                drawLine(x, headerY, x, headerY + HEADER_H, '#333', 2);
-            }
+            // Data rows
+            for (let r = 0; r < prodRows.length; r++) {
+                const row = prodRows[r];
+                const ry = phY + HEADER_H + r * ROW_H;
 
-            // ── 3. Draw Data Rows ──
-            for (let r = 0; r < rows.length; r++) {
-                const row = rows[r];
-                const ry = headerY + HEADER_H + r * ROW_H;
+                fillRect(ctx, ox, ry, PROD_W, ROW_H, row.bgRow || '#ffffff');
 
-                // Row background
-                fillRect(ox, ry, TABLE_W, ROW_H, row.bgRow || '#ffffff');
-                // Label cell background
-                fillRect(colX[0], ry, COL_LABEL, ROW_H, '#f5f5f5');
+                // Label styling
+                let lFont = 'bold 19px Inter, sans-serif', lColor = '#1a1a1a', lBg = '#f5f5f5', lPad = 16;
+                if (row.labelStyle === 'mixer') { lFont = '800 21px Inter, sans-serif'; lColor = '#b45309'; lBg = '#fef3c7'; }
+                else if (row.labelStyle === 'pellet') { lFont = '800 21px Inter, sans-serif'; lColor = '#0369a1'; lBg = '#e0f2fe'; }
+                else if (row.labelStyle === 'stock') { lFont = '800 21px Inter, sans-serif'; lColor = '#be123c'; lBg = '#ffe4e6'; }
+                else if (row.labelStyle === 'indent') { lPad = 40; lFont = '600 19px Inter, sans-serif'; lColor = '#333'; }
 
-                // ── Label styling ──
-                let labelFont = 'bold 19px Inter, sans-serif';
-                let labelColor = '#1a1a1a';
-                let labelBg = '#f5f5f5';
-                let labelPadLeft = 16;
+                fillRect(ctx, colX[0], ry, COL_LABEL, ROW_H, lBg);
+                drawTextLeft(ctx, row.label, colX[0], ry, COL_LABEL, ROW_H, lFont, lColor, lPad);
 
-                if (row.labelStyle === 'mixer') {
-                    labelFont = '800 21px Inter, sans-serif';
-                    labelColor = '#b45309';
-                    labelBg = '#fef3c7';
-                } else if (row.labelStyle === 'pellet') {
-                    labelFont = '800 21px Inter, sans-serif';
-                    labelColor = '#0369a1';
-                    labelBg = '#e0f2fe';
-                } else if (row.labelStyle === 'stock') {
-                    labelFont = '800 21px Inter, sans-serif';
-                    labelColor = '#be123c';
-                    labelBg = '#ffe4e6';
-                } else if (row.labelStyle === 'indent') {
-                    labelPadLeft = 40;
-                    labelFont = '600 19px Inter, sans-serif';
-                    labelColor = '#333';
-                }
-
-                // Draw label cell bg
-                fillRect(colX[0], ry, COL_LABEL, ROW_H, labelBg);
-                drawTextLeft(row.label, colX[0], ry, COL_LABEL, ROW_H, labelFont, labelColor, labelPadLeft);
-
-                // ── Content cells ──
                 if (row.type === 'day') {
-                    // Day row: colspan 5, centered, big number
-                    const spanX = colX[1];
-                    const spanW = COL_TARGET + COL_CA * 3 + COL_TOTAL;
-                    fillRect(spanX, ry, spanW, ROW_H, row.bgRow);
-                    drawTextCenter(row.dayValue, spanX, ry, spanW, ROW_H,
-                        'bold 36px Inter, sans-serif', '#4338ca');
+                    const sw = COL_TARGET+COL_CA*3+COL_TOTAL;
+                    fillRect(ctx, colX[1], ry, sw, ROW_H, row.bgRow);
+                    drawTextCenter(ctx, row.dayValue, colX[1], ry, sw, ROW_H, 'bold 36px Inter, sans-serif', '#4338ca');
                 } else if (row.type === 'cambot') {
-                    // Cám bột: colspan 5, centered
-                    const spanX = colX[1];
-                    const spanW = COL_TARGET + COL_CA * 3 + COL_TOTAL;
-                    fillRect(spanX, ry, spanW, ROW_H, row.bgRow);
-                    drawTextCenter(row.value, spanX, ry, spanW, ROW_H,
-                        '600 20px Inter, sans-serif', '#1a1a1a');
+                    const sw = COL_TARGET+COL_CA*3+COL_TOTAL;
+                    fillRect(ctx, colX[1], ry, sw, ROW_H, row.bgRow);
+                    drawTextCenter(ctx, row.value, colX[1], ry, sw, ROW_H, '600 20px Inter, sans-serif', '#1a1a1a');
                 } else if (row.type === 'sale' || row.type === 'stock') {
-                    // SALE/STOCK: colspan 5, centered, bold
-                    const spanX = colX[1];
-                    const spanW = COL_TARGET + COL_CA * 3 + COL_TOTAL;
-                    fillRect(spanX, ry, spanW, ROW_H, row.bgRow);
-                    drawTextCenter(row.value, spanX, ry, spanW, ROW_H,
-                        'bold 24px Inter, sans-serif', '#1a1a1a');
+                    const sw = COL_TARGET+COL_CA*3+COL_TOTAL;
+                    fillRect(ctx, colX[1], ry, sw, ROW_H, row.bgRow);
+                    drawTextCenter(ctx, row.value, colX[1], ry, sw, ROW_H, 'bold 24px Inter, sans-serif', '#1a1a1a');
                 } else {
-                    // Standard row: target + ca1-3 + total
-                    // Target
-                    drawTextCenter(row.target || '', colX[1], ry, colW[1], ROW_H,
-                        'bold 20px Inter, sans-serif', '#7c3aed');
-                    // CA 1-3
-                    drawTextCenter(row.ca1, colX[2], ry, colW[2], ROW_H,
-                        '600 20px Inter, sans-serif', '#1a1a1a');
-                    drawTextCenter(row.ca2, colX[3], ry, colW[3], ROW_H,
-                        '600 20px Inter, sans-serif', '#1a1a1a');
-                    drawTextCenter(row.ca3, colX[4], ry, colW[4], ROW_H,
-                        '600 20px Inter, sans-serif', '#1a1a1a');
-                    // Total
-                    drawTextCenter(row.total, colX[5], ry, colW[5], ROW_H,
-                        'bold 22px Inter, sans-serif', '#059669');
+                    drawTextCenter(ctx, row.target||'', colX[1], ry, colW[1], ROW_H, 'bold 20px Inter, sans-serif', '#7c3aed');
+                    drawTextCenter(ctx, row.ca1, colX[2], ry, colW[2], ROW_H, '600 20px Inter, sans-serif', '#1a1a1a');
+                    drawTextCenter(ctx, row.ca2, colX[3], ry, colW[3], ROW_H, '600 20px Inter, sans-serif', '#1a1a1a');
+                    drawTextCenter(ctx, row.ca3, colX[4], ry, colW[4], ROW_H, '600 20px Inter, sans-serif', '#1a1a1a');
+                    drawTextCenter(ctx, row.total, colX[5], ry, colW[5], ROW_H, 'bold 22px Inter, sans-serif', '#059669');
                 }
 
-                // ── Row-specific colored border-bottom ──
-                if (row.borderBottom) {
-                    drawLine(ox, ry + ROW_H, ox + TABLE_W, ry + ROW_H,
-                        row.borderBottom, row.borderBottomWidth || 2);
-                }
-                // ── Row-specific colored border-top ──
-                if (row.borderTop) {
-                    drawLine(ox, ry, ox + TABLE_W, ry,
-                        row.borderTop, row.borderTopWidth || 2);
-                }
+                if (row.borderBottom) drawLine(ctx, ox, ry+ROW_H, ox+PROD_W, ry+ROW_H, row.borderBottom, row.borderBottomWidth||2);
+                if (row.borderTop) drawLine(ctx, ox, ry, ox+PROD_W, ry, row.borderTop, row.borderTopWidth||2);
             }
 
-            // ── 4. Draw Grid Lines ──
-            const dataEndY = headerY + HEADER_H + rows.length * ROW_H;
+            // Grid lines
+            const prodEndY = phY + HEADER_H + prodRows.length * ROW_H;
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 3;
+            ctx.strokeRect(ox, prodOY+TITLE_H, PROD_W, HEADER_H + prodRows.length*ROW_H);
 
-            // Outer border
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(ox, oy + TITLE_H, TABLE_W, HEADER_H + rows.length * ROW_H);
-
-            // Vertical column separators — skip colspan rows
-            // Rows with type (day, cambot, sale, stock) have merged cells,
-            // so vertical lines must not be drawn through them.
+            // Vertical lines (skip colspan)
             for (let c = 1; c < 6; c++) {
-                const lineColor = c === 1 ? '#555' : '#999';
-                const lineW = c === 1 ? 2 : 1.5;
-                // Draw segment-by-segment, skipping colspan rows
-                let segStart = null;
-                for (let r = 0; r <= rows.length; r++) {
-                    const ry = headerY + HEADER_H + r * ROW_H;
-                    const isColspan = r < rows.length && rows[r].type;
-                    if (isColspan || r === rows.length) {
-                        // End current segment if one was started
-                        if (segStart !== null) {
-                            drawLine(colX[c], segStart, colX[c], ry, lineColor, lineW);
-                            segStart = null;
-                        }
-                    } else {
-                        // Start a new segment if not already in one
-                        if (segStart === null) segStart = ry;
-                    }
+                const lc = c===1?'#555':'#999', lw = c===1?2:1.5;
+                let seg = null;
+                for (let r = 0; r <= prodRows.length; r++) {
+                    const ry = phY+HEADER_H+r*ROW_H;
+                    const skip = r<prodRows.length && prodRows[r].type;
+                    if (skip || r===prodRows.length) { if(seg!==null){drawLine(ctx,colX[c],seg,colX[c],ry,lc,lw);seg=null;} }
+                    else { if(seg===null) seg=ry; }
                 }
             }
+            // Horizontal separators
+            for (let r = 0; r < prodRows.length; r++) {
+                const ry = phY+HEADER_H+r*ROW_H;
+                if (!prodRows[r].borderBottom && !prodRows[r].borderTop) drawLine(ctx, ox, ry, ox+PROD_W, ry, '#ccc', 1);
+            }
+            drawLine(ctx, ox+COL_LABEL, phY, ox+COL_LABEL, prodEndY, '#555', 2);
 
-            // Horizontal row separators
-            for (let r = 0; r < rows.length; r++) {
-                const ry = headerY + HEADER_H + r * ROW_H;
-                // Skip if the row already has a custom border
-                if (!rows[r].borderBottom && !rows[r].borderTop) {
-                    drawLine(ox, ry, ox + TABLE_W, ry, '#ccc', 1);
+            // ══════════════════════════════════════════
+            //  DRAW B: Loss Daily Table
+            // ══════════════════════════════════════════
+            const lossOY = prodOY + PROD_H + GAP;
+            const lColX = [ox, ox+L_COL_MACHINE, ox+L_COL_MACHINE+L_COL_DETAIL];
+            const lColW = [L_COL_MACHINE, L_COL_DETAIL, L_COL_TIME];
+
+            // Title
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = 'bold 20px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(lossTitleText, ox + 8, lossOY + L_TITLE_H / 2);
+
+            // Header
+            const lhY = lossOY + L_TITLE_H;
+            const lHeaders = ['MACHINE', 'CHI TIẾT LOSS', 'TỔNG THỜI GIAN'];
+            for (let c = 0; c < 3; c++) {
+                fillRect(ctx, lColX[c], lhY, lColW[c], L_HEADER_H, '#e8e8e8');
+                drawTextCenter(ctx, lHeaders[c], lColX[c], lhY, lColW[c], L_HEADER_H, 'bold 14px Inter, sans-serif', '#1a1a1a');
+            }
+            drawLine(ctx, ox, lhY, ox+L_TABLE_W, lhY, '#333', 2);
+            drawLine(ctx, ox, lhY+L_HEADER_H, ox+L_TABLE_W, lhY+L_HEADER_H, '#333', 2);
+            for (let c = 0; c <= 3; c++) { drawLine(ctx, c<3?lColX[c]:ox+L_TABLE_W, lhY, c<3?lColX[c]:ox+L_TABLE_W, lhY+L_HEADER_H, '#333', 2); }
+
+            // Data rows
+            let curY = lhY + L_HEADER_H;
+            for (let r = 0; r < lossData.length; r++) {
+                const row = lossData[r];
+                const rh = lossRowHeights[r];
+
+                if (row.type === 'total') {
+                    drawLine(ctx, ox, curY, ox+L_TABLE_W, curY, '#333', 3);
+                    fillRect(ctx, lColX[0], curY, L_COL_MACHINE+L_COL_DETAIL, rh, '#f5f5f5');
+                    fillRect(ctx, lColX[2], curY, L_COL_TIME, rh, '#fde68a');
+                    ctx.fillStyle = '#1a1a1a'; ctx.font = 'bold 16px Inter, sans-serif'; ctx.textAlign = 'right';
+                    ctx.fillText(row.label, lColX[2]-16, curY+rh/2);
+                    ctx.fillStyle = '#7c2d12'; ctx.font = 'bold 17px Inter, sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText(row.time, lColX[2]+L_COL_TIME/2, curY+rh/2);
+                    drawLine(ctx, lColX[2], curY, lColX[2], curY+rh, '#555', 2);
+                } else {
+                    if (row.isMixer) drawLine(ctx, ox, curY, ox+L_TABLE_W, curY, '#d97706', 2);
+                    else drawLine(ctx, ox, curY, ox+L_TABLE_W, curY, '#ccc', 1);
+
+                    const mBg = row.isMixer?'#fffbeb':row.isPl67?'#f0fdf4':'#f0f9ff';
+                    fillRect(ctx, lColX[0], curY, L_COL_MACHINE, rh, mBg);
+                    fillRect(ctx, lColX[1], curY, L_COL_DETAIL, rh, r%2===0?'#ffffff':'#fafafa');
+                    fillRect(ctx, lColX[2], curY, L_COL_TIME, rh, '#fef2f2');
+
+                    const mColor = row.isMixer?'#b45309':row.isPl67?'#15803d':'#0369a1';
+                    ctx.fillStyle = mColor; ctx.font = row.isMixer?'bold 15px Inter, sans-serif':'bold 14px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(row.machine, lColX[0]+L_COL_MACHINE/2, curY+rh/2);
+
+                    const lines = lossWrappedLines[r];
+                    ctx.fillStyle = '#b91c1c'; ctx.font = L_DETAIL_FONT; ctx.textAlign = 'left';
+                    const tbH = lines.length * L_LINE_H;
+                    const tsY = curY + (rh-tbH)/2 + L_LINE_H/2;
+                    for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], lColX[1]+L_CELL_PAD_H, tsY+i*L_LINE_H);
+
+                    ctx.fillStyle = '#b91c1c'; ctx.font = 'bold 15px Inter, sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText(row.time, lColX[2]+L_COL_TIME/2, curY+rh/2);
+
+                    drawLine(ctx, lColX[1], curY, lColX[1], curY+rh, '#555', 2);
+                    drawLine(ctx, lColX[2], curY, lColX[2], curY+rh, '#555', 2);
                 }
+                curY += rh;
             }
 
-            // Label column right border (stronger)
-            drawLine(colX[0] + COL_LABEL, headerY, colX[0] + COL_LABEL, dataEndY, '#555', 2);
+            // Outer border for loss table
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 3;
+            ctx.strokeRect(ox, lossOY+L_TITLE_H, L_TABLE_W, L_HEADER_H+lossTotalRowH);
 
-            // ── 5. Export ──
+            // ── Export ──
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 
-            // Try clipboard first
             try {
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
                 txt.textContent = '✅ Đã copy!';
                 btn.classList.add('capture-success');
             } catch (clipErr) {
-                console.warn('Clipboard failed, downloading instead:', clipErr);
+                console.warn('Clipboard failed, downloading:', clipErr);
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
