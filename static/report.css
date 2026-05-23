@@ -641,6 +641,14 @@
     color: #b91c1c;
 }
 
+.loss-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
 .loss-table-wrapper {
     overflow-x: auto;
 }

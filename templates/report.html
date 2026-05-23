@@ -287,12 +287,21 @@
                 <div class="loss-summary-section" id="loss-summary-section">
                     <!-- Table 1: Daily Loss Detail -->
                     <div class="loss-table-block">
-                        <h3 class="loss-table-title" id="loss-daily-title">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-                            </svg>
-                            TỔNG KẾT LOSS TRONG NGÀY
-                        </h3>
+                        <div class="loss-header-bar">
+                            <h3 class="loss-table-title" id="loss-daily-title">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                                </svg>
+                                TỔNG KẾT LOSS TRONG NGÀY
+                            </h3>
+                            <button class="btn-capture" id="btn-capture-loss" onclick="captureLossDaily()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <span id="capture-loss-text">Capture Loss</span>
+                            </button>
+                        </div>
                         <div class="loss-table-wrapper">
                             <table class="loss-detail-table" id="loss-daily-table">
                                 <thead>
@@ -736,6 +745,279 @@
 
         } catch (err) {
             console.error('Capture error:', err);
+            txt.textContent = '❌ Lỗi!';
+            setTimeout(() => { txt.textContent = orig; btn.disabled = false; }, 2000);
+        }
+    }
+
+    async function captureLossDaily() {
+        const btn = document.getElementById('btn-capture-loss');
+        const txt = document.getElementById('capture-loss-text');
+        const orig = txt.textContent;
+        btn.disabled = true;
+        txt.textContent = 'Đang chụp...';
+
+        try {
+            await document.fonts.ready;
+
+            // ── Read title ──
+            const titleEl = document.getElementById('loss-daily-title');
+            const titleText = titleEl ? titleEl.textContent.trim() : 'TỔNG KẾT LOSS TRONG NGÀY';
+
+            // ── Read table data from DOM ──
+            const table = document.getElementById('loss-daily-table');
+            const bodyRows = table.querySelectorAll('#loss-daily-body tr');
+            const dataRows = [];
+
+            bodyRows.forEach(tr => {
+                const cells = tr.querySelectorAll('td');
+                if (cells.length === 3) {
+                    // Normal row: machine | detail | time
+                    const machineEl = cells[0];
+                    const isMixer = tr.classList.contains('ldt-mixer');
+                    const isPl67 = tr.classList.contains('ldt-pl67');
+                    dataRows.push({
+                        type: 'normal',
+                        machine: machineEl.textContent.trim(),
+                        detail: cells[1].textContent.trim(),
+                        time: cells[2].textContent.trim(),
+                        isMixer, isPl67
+                    });
+                } else if (cells.length === 2) {
+                    // Total row: TỔNG (colspan=2) | grand total
+                    dataRows.push({
+                        type: 'total',
+                        label: cells[0].textContent.trim(),
+                        time: cells[1].textContent.trim()
+                    });
+                }
+            });
+
+            // ── Canvas layout constants ──
+            const SCALE = 3;
+            const COL_MACHINE = 100;
+            const COL_DETAIL = 560;
+            const COL_TIME = 140;
+            const TABLE_W = COL_MACHINE + COL_DETAIL + COL_TIME;
+            const HEADER_H = 44;
+            const TITLE_H = 56;
+            const PAD = 24;
+            const LINE_H = 20;      // line height for detail text
+            const CELL_PAD_V = 12;  // vertical padding inside cells
+            const CELL_PAD_H = 14;  // horizontal padding
+
+            // ── Pre-calculate row heights (text wrapping) ──
+            // Use an offscreen canvas to measure text
+            const measureCanvas = document.createElement('canvas');
+            const mctx = measureCanvas.getContext('2d');
+
+            function wrapText(ctx, text, maxWidth, font) {
+                ctx.font = font;
+                if (!text || text === '-') return [text || '-'];
+                const words = text.split(' ');
+                const lines = [];
+                let currentLine = '';
+                for (const word of words) {
+                    const testLine = currentLine ? currentLine + ' ' + word : word;
+                    if (ctx.measureText(testLine).width > maxWidth) {
+                        if (currentLine) lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+                if (currentLine) lines.push(currentLine);
+                return lines.length ? lines : ['-'];
+            }
+
+            const detailFont = '500 13px Inter, sans-serif';
+            const detailMaxW = COL_DETAIL - CELL_PAD_H * 2;
+
+            const rowHeights = [];
+            const rowWrappedLines = [];
+            for (const row of dataRows) {
+                if (row.type === 'total') {
+                    rowHeights.push(48);
+                    rowWrappedLines.push([]);
+                } else {
+                    const lines = wrapText(mctx, row.detail, detailMaxW, detailFont);
+                    const textH = lines.length * LINE_H;
+                    const rowH = Math.max(44, textH + CELL_PAD_V * 2);
+                    rowHeights.push(rowH);
+                    rowWrappedLines.push(lines);
+                }
+            }
+
+            const totalRowH = rowHeights.reduce((a, b) => a + b, 0);
+            const canvasW = TABLE_W + PAD * 2;
+            const canvasH = TITLE_H + HEADER_H + totalRowH + PAD * 2;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasW * SCALE;
+            canvas.height = canvasH * SCALE;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(SCALE, SCALE);
+            ctx.imageSmoothingEnabled = false;
+            ctx.textBaseline = 'middle';
+
+            // ── Background ──
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            const ox = PAD;
+            const oy = PAD;
+
+            // Helpers
+            function fillRect(x, y, w, h, color) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+            }
+            function drawLine(x1, y1, x2, y2, color, width) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+
+            const colX = [ox, ox + COL_MACHINE, ox + COL_MACHINE + COL_DETAIL];
+            const colW = [COL_MACHINE, COL_DETAIL, COL_TIME];
+
+            // ── 1. Title ──
+            fillRect(ox, oy, TABLE_W, TITLE_H, '#ffffff');
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = 'bold 20px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(titleText, ox + 8, oy + TITLE_H / 2);
+
+            // ── 2. Header ──
+            const headerY = oy + TITLE_H;
+            const headers = ['MACHINE', 'CHI TIẾT LOSS', 'TỔNG THỜI GIAN'];
+            for (let c = 0; c < 3; c++) {
+                fillRect(colX[c], headerY, colW[c], HEADER_H, '#e8e8e8');
+                ctx.fillStyle = '#1a1a1a';
+                ctx.font = 'bold 14px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(headers[c], colX[c] + colW[c] / 2, headerY + HEADER_H / 2);
+            }
+            drawLine(ox, headerY, ox + TABLE_W, headerY, '#333', 2);
+            drawLine(ox, headerY + HEADER_H, ox + TABLE_W, headerY + HEADER_H, '#333', 2);
+            for (let c = 0; c <= 3; c++) {
+                const x = c < 3 ? colX[c] : ox + TABLE_W;
+                drawLine(x, headerY, x, headerY + HEADER_H, '#333', 2);
+            }
+
+            // ── 3. Data Rows ──
+            let curY = headerY + HEADER_H;
+            for (let r = 0; r < dataRows.length; r++) {
+                const row = dataRows[r];
+                const rh = rowHeights[r];
+
+                if (row.type === 'total') {
+                    // ── Total row ──
+                    drawLine(ox, curY, ox + TABLE_W, curY, '#333', 3);
+                    fillRect(colX[0], curY, COL_MACHINE + COL_DETAIL, rh, '#f5f5f5');
+                    fillRect(colX[2], curY, COL_TIME, rh, '#fde68a');
+
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.font = 'bold 16px Inter, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(row.label, colX[2] - 16, curY + rh / 2);
+
+                    ctx.fillStyle = '#7c2d12';
+                    ctx.font = 'bold 17px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(row.time, colX[2] + COL_TIME / 2, curY + rh / 2);
+
+                    // Vertical separator before time
+                    drawLine(colX[2], curY, colX[2], curY + rh, '#555', 2);
+                } else {
+                    // ── Normal row ──
+                    // Row separator
+                    if (row.isMixer) {
+                        drawLine(ox, curY, ox + TABLE_W, curY, '#d97706', 2);
+                    } else {
+                        drawLine(ox, curY, ox + TABLE_W, curY, '#ccc', 1);
+                    }
+
+                    // Backgrounds
+                    const machineBg = row.isMixer ? '#fffbeb' : row.isPl67 ? '#f0fdf4' : '#f0f9ff';
+                    fillRect(colX[0], curY, COL_MACHINE, rh, machineBg);
+                    const detailBg = r % 2 === 0 ? '#ffffff' : '#fafafa';
+                    fillRect(colX[1], curY, COL_DETAIL, rh, detailBg);
+                    fillRect(colX[2], curY, COL_TIME, rh, '#fef2f2');
+
+                    // Machine name
+                    const machineColor = row.isMixer ? '#b45309' : row.isPl67 ? '#15803d' : '#0369a1';
+                    const machineFont = row.isMixer ? 'bold 15px Inter, sans-serif' : 'bold 14px Inter, sans-serif';
+                    ctx.fillStyle = machineColor;
+                    ctx.font = machineFont;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(row.machine, colX[0] + COL_MACHINE / 2, curY + rh / 2);
+
+                    // Detail text (wrapped)
+                    const lines = rowWrappedLines[r];
+                    ctx.fillStyle = '#b91c1c';
+                    ctx.font = detailFont;
+                    ctx.textAlign = 'left';
+                    const textBlockH = lines.length * LINE_H;
+                    const textStartY = curY + (rh - textBlockH) / 2 + LINE_H / 2;
+                    for (let i = 0; i < lines.length; i++) {
+                        ctx.fillText(lines[i], colX[1] + CELL_PAD_H, textStartY + i * LINE_H);
+                    }
+
+                    // Time
+                    ctx.fillStyle = '#b91c1c';
+                    ctx.font = 'bold 15px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(row.time, colX[2] + COL_TIME / 2, curY + rh / 2);
+
+                    // Vertical separators
+                    drawLine(colX[1], curY, colX[1], curY + rh, '#555', 2);
+                    drawLine(colX[2], curY, colX[2], curY + rh, '#555', 2);
+                }
+
+                curY += rh;
+            }
+
+            // ── 4. Outer border ──
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(ox, oy + TITLE_H, TABLE_W, HEADER_H + totalRowH);
+
+            // ── 5. Export ──
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                txt.textContent = '✅ Đã copy!';
+                btn.classList.add('capture-success');
+            } catch (clipErr) {
+                console.warn('Clipboard failed, downloading:', clipErr);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const dayText = document.getElementById('cell-day').textContent.trim();
+                a.download = `loss_ngay${dayText}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                txt.textContent = '✅ Đã tải xuống!';
+                btn.classList.add('capture-success');
+            }
+
+            setTimeout(() => {
+                txt.textContent = orig;
+                btn.disabled = false;
+                btn.classList.remove('capture-success');
+            }, 2500);
+
+        } catch (err) {
+            console.error('Capture loss error:', err);
             txt.textContent = '❌ Lỗi!';
             setTimeout(() => { txt.textContent = orig; btn.disabled = false; }, 2000);
         }
