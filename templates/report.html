@@ -668,11 +668,28 @@
             ctx.lineWidth = 3;
             ctx.strokeRect(ox, oy + TITLE_H, TABLE_W, HEADER_H + rows.length * ROW_H);
 
-            // Vertical column separators
+            // Vertical column separators — skip colspan rows
+            // Rows with type (day, cambot, sale, stock) have merged cells,
+            // so vertical lines must not be drawn through them.
             for (let c = 1; c < 6; c++) {
                 const lineColor = c === 1 ? '#555' : '#999';
                 const lineW = c === 1 ? 2 : 1.5;
-                drawLine(colX[c], headerY, colX[c], dataEndY, lineColor, lineW);
+                // Draw segment-by-segment, skipping colspan rows
+                let segStart = null;
+                for (let r = 0; r <= rows.length; r++) {
+                    const ry = headerY + HEADER_H + r * ROW_H;
+                    const isColspan = r < rows.length && rows[r].type;
+                    if (isColspan || r === rows.length) {
+                        // End current segment if one was started
+                        if (segStart !== null) {
+                            drawLine(colX[c], segStart, colX[c], ry, lineColor, lineW);
+                            segStart = null;
+                        }
+                    } else {
+                        // Start a new segment if not already in one
+                        if (segStart === null) segStart = ry;
+                    }
+                }
             }
 
             // Horizontal row separators
