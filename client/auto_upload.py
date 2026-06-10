@@ -135,12 +135,33 @@ def main():
     for msg in file_results:
         log.info(msg)
 
-    if not entries and not nvvh_entries and not loss_entries and not khuon_entries:
-        log.warning("⚠️ Không tìm thấy dữ liệu phù hợp")
-        add_history_entry("no-data", username)
-        sys.exit(0)
+    # ── Lọc chỉ giữ 3 ngày gần nhất ──────────────────────
+    today = datetime.now()
+    recent_days = set()
+    for delta in range(3):
+        d = today - __import__('datetime').timedelta(days=delta)
+        recent_days.add((d.year, d.month, d.day))
+
+    def is_recent(entry):
+        return (entry.get("year"), entry.get("month"), entry.get("day")) in recent_days
+
+    orig_counts = (len(entries), len(nvvh_entries), len(loss_entries))
+    entries = [e for e in entries if is_recent(e)]
+    nvvh_entries = [e for e in nvvh_entries if is_recent(e)]
+    loss_entries = [e for e in loss_entries if is_recent(e)]
+    # Khuôn gửi nguyên (dữ liệu theo tháng, không lọc theo ngày)
+
+    log.info(f"📅 Lọc 3 ngày gần nhất: {sorted(recent_days)}")
+    log.info(f"   Sản lượng: {orig_counts[0]} → {len(entries)}")
+    log.info(f"   NVVH: {orig_counts[1]} → {len(nvvh_entries)}")
+    log.info(f"   LOSS: {orig_counts[2]} → {len(loss_entries)}")
 
     log.info(f"📊 Tổng: {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS, {len(khuon_entries)} KHUÔN")
+
+    if not entries and not nvvh_entries and not loss_entries and not khuon_entries:
+        log.warning("⚠️ Không tìm thấy dữ liệu phù hợp trong 3 ngày gần nhất")
+        add_history_entry("no-data", username)
+        sys.exit(0)
 
     # Dry-run mode: stop here
     if _dry_run:
