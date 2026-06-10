@@ -110,7 +110,8 @@ class SPDownloader:
         with sync_playwright() as p:
             ctx = p.chromium.launch_persistent_context(
                 self.user_data_dir, headless=False,
-                accept_downloads=True, slow_mo=500
+                accept_downloads=True, slow_mo=500,
+                channel="msedge"
             )
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             page.goto(sp_url, timeout=60000)
@@ -245,7 +246,8 @@ class SPDownloader:
                 try:
                     ctx = p.chromium.launch_persistent_context(
                         self.user_data_dir, headless=True,
-                        accept_downloads=True
+                        accept_downloads=True,
+                        channel="msedge"
                     )
                     break
                 except Exception as e:
