@@ -1,50 +1,40 @@
 @echo off
 chcp 65001 >nul
-title Cài đặt Playwright cho SharePoint Downloader
+title Cai dat Playwright
 echo ============================================================
-echo   CÀI ĐẶT PLAYWRIGHT (SharePoint Download)
+echo   CAI DAT PLAYWRIGHT (SharePoint Download)
 echo ============================================================
 echo.
-
 cd /d "%~dp0"
-
-:: Kiểm tra Python
 set PYTHON_CMD=python
-if exist "%~dp0python_path.txt" set /p PYTHON_CMD=<"%~dp0python_path.txt"
-
-echo [1/3] Kiểm tra Python...
-"%PYTHON_CMD%" --version 2>nul
+if exist "%~dp0python_path.txt" (
+    set /p PYTHON_CMD=<"%~dp0python_path.txt"
+)
+echo [1/3] Kiem tra Python...
+"%PYTHON_CMD%" --version
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Không tìm thấy Python!
-    echo         Vui lòng cài Python hoặc cập nhật python_path.txt
+    echo [ERROR] Khong tim thay Python!
     pause
     exit /b 1
 )
-
 echo.
-echo [2/3] Cài đặt package playwright...
-"%PYTHON_CMD%" -m pip install playwright --quiet
+echo [2/3] Cai dat package playwright...
+"%PYTHON_CMD%" -m pip install playwright
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Cài playwright thất bại!
+    echo [ERROR] Cai playwright that bai!
     pause
     exit /b 1
 )
-
 echo.
-echo [3/3] Tải Chromium browser (không cần quyền admin)...
+echo [3/3] Tai Chromium browser...
 "%PYTHON_CMD%" -m playwright install chromium
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Tải Chromium thất bại!
-    echo         Thử chạy lại với quyền admin.
+    echo [ERROR] Tai Chromium that bai!
     pause
     exit /b 1
 )
-
 echo.
 echo ============================================================
-echo   CÀI ĐẶT THÀNH CÔNG!
-echo   Chromium đã được tải về (không cần quyền admin).
-echo   Bạn có thể sử dụng chức năng SharePoint trong uploader.
+echo   CAI DAT THANH CONG!
 echo ============================================================
-echo.
 pause
