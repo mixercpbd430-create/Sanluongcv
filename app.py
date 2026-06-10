@@ -7,7 +7,9 @@ Accessible via LAN (company WiFi) and Internet.
 
 import os
 import time
+from collections import defaultdict
 from functools import wraps
+from threading import Lock
 from flask import (Flask, render_template, jsonify, request,
                    session, redirect, url_for, send_file)
 from database import (init_db, import_from_excel, import_month_from_excel,
@@ -24,6 +26,78 @@ DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Initialize database on startup
 init_db(DATA_DIR)
+
+
+# ── Rate Limiter ──────────────────────────────────────────
+# Block IP nếu gửi > 60 requests trong 10 giây
+RATE_LIMIT_MAX = 60      # số request tối đa
+RATE_LIMIT_WINDOW = 10   # cửa sổ thời gian (giây)
+RATE_LIMIT_BLOCK = 60    # thời gian block (giây) sau khi vượt limit
+
+_rate_data = defaultdict(lambda: {"requests": [], "blocked_until": 0})
+_rate_lock = Lock()
+
+# Các endpoint KHÔNG áp dụng rate limit (upload dữ liệu + health check)
+RATE_LIMIT_EXEMPT = {
+    "/api/upload-data",
+    "/api/upload-khuon",
+    "/healthz",
+}
+
+
+def _get_client_ip():
+    """Lấy IP thực của client (hỗ trợ reverse proxy)."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
+@app.before_request
+def rate_limit_check():
+    """Kiểm tra rate limit trước mỗi request."""
+    # Bỏ qua các endpoint được miễn
+    if request.path in RATE_LIMIT_EXEMPT:
+        return None
+
+    # Bỏ qua static files
+    if request.path.startswith("/static/"):
+        return None
+
+    ip = _get_client_ip()
+    now = time.time()
+
+    with _rate_lock:
+        info = _rate_data[ip]
+
+        # Kiểm tra IP đang bị block
+        if now < info["blocked_until"]:
+            remaining = int(info["blocked_until"] - now)
+            return jsonify({
+                "status": "error",
+                "message": f"Quá nhiều request. Thử lại sau {remaining} giây.",
+                "retry_after": remaining,
+            }), 429
+
+        # Xóa các request cũ ngoài cửa sổ thời gian
+        cutoff = now - RATE_LIMIT_WINDOW
+        info["requests"] = [t for t in info["requests"] if t > cutoff]
+
+        # Kiểm tra số lượng request
+        if len(info["requests"]) >= RATE_LIMIT_MAX:
+            info["blocked_until"] = now + RATE_LIMIT_BLOCK
+            info["requests"] = []
+            return jsonify({
+                "status": "error",
+                "message": f"Quá nhiều request ({RATE_LIMIT_MAX}/{RATE_LIMIT_WINDOW}s). Bị block {RATE_LIMIT_BLOCK} giây.",
+                "retry_after": RATE_LIMIT_BLOCK,
+            }), 429
+
+        # Ghi nhận request
+        info["requests"].append(now)
+
+    return None
+
 
 
 @app.route("/healthz")
@@ -418,10 +492,30 @@ def api_report_day_details(day):
     year_num = int(parts[0])
     month_num = int(parts[1])
 
-    from database import get_nvvh_for_day, get_loss_for_day
+    from database import (get_nvvh_for_day, get_loss_for_day,
+                          get_loss_mtd_summary, get_loss_monthly_comparison)
+
+    # Month-to-date loss (day 1 → selected day)
+    mtd_raw = get_loss_mtd_summary(year_num, month_num, day)
+    mtd = {str(k): v for k, v in mtd_raw.items()}
+
+    # Monthly comparison (all months up to current)
+    compare_months = list(range(1, month_num + 1))
+    monthly_raw = get_loss_monthly_comparison(year_num, compare_months)
+    monthly_loss = []
+    for m in compare_months:
+        machine_loss = {str(k): v for k, v in monthly_raw.get(m, {}).items()}
+        monthly_loss.append({
+            "month_key": f"{year_num}-{m:02d}",
+            "label": f"Tháng {m}/{year_num}",
+            "machine_loss": machine_loss,
+        })
+
     details = {
         "nvvh": get_nvvh_for_day(year_num, month_num, day),
         "loss_notes": get_loss_for_day(year_num, month_num, day),
+        "month_to_date_loss": mtd,
+        "monthly_loss": monthly_loss,
     }
 
     return jsonify(details)
@@ -698,7 +792,7 @@ def api_khuon_export():
 if __name__ == "__main__":
     print("=" * 60)
     print("  SẢN LƯỢNG HÀNG NGÀY - Flask Web App")
-    print("  Truy cập: http://localhost:5000")
-    print("  Hoặc từ thiết bị khác: http://<IP máy>:5000")
+    print("  Truy cập: http://localhost:5009")
+    print("  Hoặc từ thiết bị khác: http://<IP máy>:5009")
     print("=" * 60)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5009, debug=True)
