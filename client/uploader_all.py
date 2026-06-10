@@ -889,7 +889,7 @@ class UploaderApp:
         self.btn_sp_login.pack(side="left", padx=(0, 5), expand=True, fill="x")
 
         self.btn_sp_download = tk.Button(
-            sp_btns, text="📥 Tải SP → Gửi Local",
+            sp_btns, text="📥 Tải SP → Gửi",
             font=("Segoe UI", 10, "bold"), bg="#8b5cf6", fg="white",
             activebackground="#7c3aed", relief="flat",
             command=self._start_sp_download)
@@ -972,14 +972,16 @@ class UploaderApp:
         threading.Thread(target=self._do_sp_download, daemon=True).start()
 
     def _do_sp_download(self):
-        """Tải file từ SharePoint → parse → gửi localhost:5009."""
+        """Tải file từ SharePoint → parse → gửi REMOTE + LOCAL."""
+        download_dir = None
         try:
+            server = self.server_var.get().strip()
             local = self.local_var.get().strip()
             username = self.user_var.get().strip().lower()
             password = self.pass_var.get().strip()
 
-            if not all([local, username, password]):
-                self._log("❌ Vui lòng điền Username, Password và Local URL!")
+            if not all([username, password]):
+                self._log("❌ Vui lòng điền Username và Password!")
                 return
 
             # Tự lấy tháng/năm hiện tại
@@ -989,7 +991,10 @@ class UploaderApp:
 
             self._log(f"☁️ Tải file từ SharePoint — Tháng {month}/{year}")
             self._log(f"👤 User: {username}")
-            self._log(f"🏠 Gửi lên: {local}")
+            if server:
+                self._log(f"🌐 Remote: {server}")
+            if local:
+                self._log(f"🏠 Local: {local}")
             self._log("")
 
             # Tải file từ SharePoint
@@ -1016,14 +1021,43 @@ class UploaderApp:
             self._log(f"\n📊 Tổng: {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, "
                       f"{len(loss_entries)} LOSS, {len(khuon_entries)} KHUÔN")
 
-            # Khởi động local server + gửi dữ liệu
-            self._start_local_server()
-            ok = self._upload_to_server("LOCAL", local, username, password,
-                                         entries, nvvh_entries, loss_entries, khuon_entries)
+            all_ok = True
+
+            # ── 1. Gửi lên REMOTE (3 ngày gần nhất) ──
+            if server:
+                RECENT_DAYS = 3
+                remote_entries, remote_nvvh, remote_loss, recent_dates = _filter_recent_days(
+                    entries, nvvh_entries, loss_entries, recent_days=RECENT_DAYS)
+                day_list = sorted(recent_dates, key=lambda x: (x[0], x[1], x[2]))
+                day_strs = [f"{d}/{m}" for (y, m, d) in day_list]
+                self._log(f"\n📡 REMOTE chỉ gửi {RECENT_DAYS} ngày gần nhất: {', '.join(day_strs)}")
+                self._log(f"   → {len(remote_entries)} SL, {len(remote_nvvh)} NVVH, {len(remote_loss)} LOSS")
+
+                ok = self._upload_to_server("REMOTE", server, username, password,
+                                             remote_entries, remote_nvvh, remote_loss, khuon_entries)
+                if not ok:
+                    all_ok = False
+
+            # ── 2. Gửi lên LOCAL (tất cả dữ liệu) ──
+            if local:
+                self._start_local_server()
+                ok = self._upload_to_server("LOCAL", local, username, password,
+                                             entries, nvvh_entries, loss_entries, khuon_entries)
+                if not ok:
+                    all_ok = False
+
+            # ── 3. Xóa file đã tải ──
+            if download_dir and os.path.isdir(download_dir):
+                import shutil
+                try:
+                    shutil.rmtree(download_dir)
+                    self._log(f"\n🗑️ Đã xóa file tạm: {download_dir}")
+                except Exception as e:
+                    self._log(f"\n⚠️ Không xóa được file tạm: {e}")
 
             self._log(f"\n{'═' * 50}")
-            if ok:
-                self._log("🎉 Hoàn tất — Tải SharePoint + Gửi Local thành công!")
+            if all_ok:
+                self._log("🎉 Hoàn tất — Tải SharePoint + Gửi thành công!")
             else:
                 self._log("⚠️ Hoàn tất — có lỗi khi gửi, xem chi tiết ở trên.")
 
@@ -1031,7 +1065,7 @@ class UploaderApp:
             self._log(f"\n❌ Lỗi: {str(e)}")
         finally:
             self.root.after(0, lambda: (
-                self.btn_sp_download.config(state="normal", text="📥 Tải SP → Gửi Local"),
+                self.btn_sp_download.config(state="normal", text="📥 Tải SP → Gửi"),
                 self.btn_sp_login.config(state="normal", text="🔑 Đăng nhập SP"),
                 self.btn_upload.config(state="normal", text="🚀  Gửi tất cả dữ liệu lên hệ thống"),
             ))
