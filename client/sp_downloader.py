@@ -203,7 +203,7 @@ class SPDownloader:
             ]
 
     # ─── Tải file từ SharePoint ───────────────────────────
-    def download_files(self, sp_url, machines, month, year, download_dir=None):
+    def download_files(self, sp_url, machines, month, year, download_dir=None, subfolder=None):
         """
         Tải file Excel từ SharePoint qua REST API.
 
@@ -216,6 +216,7 @@ class SPDownloader:
             month:        Tháng (int).
             year:         Năm (int).
             download_dir: Thư mục lưu file (mặc định: sp_downloads/).
+            subfolder:    Tên thư mục con bên trong folder SharePoint (VD: '6.2026', 'OEE THÁNG 6').
 
         Returns:
             Dict {machine_name: filepath} cho các file đã tải thành công.
@@ -235,6 +236,11 @@ class SPDownloader:
         if not folder_path:
             self.log("  ❌ Không parse được folder path từ URL SharePoint")
             return {}
+
+        # Vào subfolder nếu có (VD: /2026 → /2026/6.2026)
+        if subfolder:
+            folder_path = f"{folder_path}/{subfolder}"
+            self.log(f"  📂 Subfolder: {subfolder}")
 
         self._clean_browser_locks()
 
@@ -400,19 +406,23 @@ class SPDownloader:
 
         all_downloaded = {}
 
-        # 1. Tải MIXER
+        # 1. Tải MIXER — subfolder: {month}.{year} (VD: 6.2026)
         if sp_mixer_url:
-            self.log(f"\n── MIXER ──────────────────────────")
+            mixer_subfolder = f"{month}.{year}"
+            self.log(f"\n── MIXER (/{mixer_subfolder}) ──────────────")
             mixer_files = self.download_files(
-                sp_mixer_url, MIXER_MACHINES, month, year, download_dir
+                sp_mixer_url, MIXER_MACHINES, month, year, download_dir,
+                subfolder=mixer_subfolder
             )
             all_downloaded.update(mixer_files)
 
-        # 2. Tải PL1-PL7
+        # 2. Tải PL1-PL7 — subfolder: OEE THÁNG {month} (VD: OEE THÁNG 6)
         if sp_pellet_url:
-            self.log(f"\n── PELLET (PL1-PL7) ──────────────")
+            pellet_subfolder = f"OEE TH\u00c1NG {month}"
+            self.log(f"\n── PELLET (/{pellet_subfolder}) ──────────")
             pellet_files = self.download_files(
-                sp_pellet_url, PELLET_MACHINES, month, year, download_dir
+                sp_pellet_url, PELLET_MACHINES, month, year, download_dir,
+                subfolder=pellet_subfolder
             )
             all_downloaded.update(pellet_files)
 
