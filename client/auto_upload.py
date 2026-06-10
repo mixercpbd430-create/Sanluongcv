@@ -113,11 +113,65 @@ def main():
     server = config.get("server_url", "").strip()
     username = config.get("username", "").strip().lower()
     password = config.get("password", "").strip()
+    base_folder = config.get("base_folder", "").strip()
     folder = config.get("folder", "").strip()
 
-    if not all([server, username, password, folder]):
+    # ── Tự động tìm folder theo tháng hiện tại ───────────
+    today = datetime.now()
+    cur_year = today.year
+    cur_month = today.month
+
+    if base_folder:
+        # base_folder VD: "D:/bao cao cam vien/OEE"
+        # Tự xây: "{base_folder} {year}/THANG {month}"
+        year_folder = os.path.join(f"{base_folder} {cur_year}")
+        if not os.path.isdir(year_folder):
+            # Thử thêm pattern khác: "OEE2026", "OEE 2026"
+            alt = f"{base_folder}{cur_year}"
+            if os.path.isdir(alt):
+                year_folder = alt
+            else:
+                log.error(f"❌ Không tìm thấy folder năm: {year_folder}")
+                add_history_entry("error", username, errors=[f"Folder năm không tồn tại: {year_folder}"])
+                sys.exit(1)
+
+        # Thử các pattern tên folder tháng phổ biến
+        month_patterns = [
+            f"THANG {cur_month}",                         # THANG 6
+            f"THANG {cur_month}/THANG {cur_month}",       # THANG 6/THANG 6
+            f"Thang {cur_month}",                         # Thang 6
+            f"T{cur_month}",                              # T6
+            f"THANG {cur_month:02d}",                     # THANG 06
+            f"thang {cur_month}",                         # thang 6
+        ]
+
+        folder = ""
+        for pattern in month_patterns:
+            candidate = os.path.join(year_folder, pattern)
+            if os.path.isdir(candidate):
+                folder = candidate
+                break
+
+        if not folder:
+            log.error(f"❌ Không tìm thấy folder tháng {cur_month} trong: {year_folder}")
+            log.error(f"   Đã thử: {', '.join(month_patterns)}")
+            add_history_entry("error", username,
+                              errors=[f"Folder tháng {cur_month} không tồn tại trong {year_folder}"])
+            sys.exit(1)
+
+        log.info(f"📁 Auto-detect folder: {folder}")
+
+    elif folder:
+        # Backward compatible: dùng folder cố định từ config
+        log.info(f"📁 Dùng folder từ config: {folder}")
+    else:
+        log.error("❌ Config thiếu 'base_folder' hoặc 'folder'!")
+        add_history_entry("error", username, errors=["Config thiếu folder"])
+        sys.exit(1)
+
+    if not all([server, username, password]):
         log.error("❌ Config thiếu thông tin! Kiểm tra config.json")
-        log.error(f"   server={server}, user={username}, folder={folder}")
+        log.error(f"   server={server}, user={username}")
         add_history_entry("error", username, errors=["Config thiếu thông tin"])
         sys.exit(1)
 
