@@ -1072,7 +1072,9 @@ class UploaderApp:
 
     def _start_local_server(self):
         """Launch start.bat in background to ensure local Flask server is running."""
-        start_bat = r"D:\Github\SanluongcvReact1\start.bat"
+        # Tự detect đường dẫn: client/ → parent folder chứa start.bat
+        project_dir = os.path.dirname(_app_dir)  # lên 1 cấp từ client/
+        start_bat = os.path.join(project_dir, "start.bat")
         if not os.path.exists(start_bat):
             self._log(f"⚠️ Không tìm thấy {start_bat}")
             return
@@ -1081,7 +1083,7 @@ class UploaderApp:
             # Launch in a new console window, non-blocking
             subprocess.Popen(
                 ["cmd", "/c", "start", "Local Server", start_bat],
-                cwd=r"D:\Github\SanluongcvReact1",
+                cwd=project_dir,
                 shell=True,
             )
             # Wait a few seconds for server to start
