@@ -1,7 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using backend.Data;
@@ -61,6 +63,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // ── Services ──
 builder.Services.AddScoped<ProductionService>();
+builder.Services.AddScoped<KhuonService>();
+builder.Services.AddScoped<ReportDetailsService>();
 
 // ── JWT Authentication ──
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "cpvn-sanluong-2026-secret-key-min-32-chars!";
@@ -87,11 +91,59 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost:5173",    // Vite dev
                 "http://localhost:3000",     // alt
-                "https://sanluongcv.onrender.com"
+                "https://sanluongcv.onrender.com",
+                "https://pro-volume.binhduongfeedmill.com",  // Firebase custom domain
+                "https://sanluongcv-binhduong.web.app",      // Firebase default domain
+                "https://sanluongcv-binhduong.firebaseapp.com" // Firebase alternate domain
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
+    });
+});
+
+// ── Rate Limiting: 60 requests / 10 giây per IP ──
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retry)
+            ? (int)retry.TotalSeconds : 10;
+        context.HttpContext.Response.Headers.RetryAfter = retryAfter.ToString();
+        var json = JsonSerializer.Serialize(new
+        {
+            status = "error",
+            message = $"Quá nhiều request. Thử lại sau {retryAfter} giây.",
+            retry_after = retryAfter
+        });
+        await context.HttpContext.Response.WriteAsync(json, cancellationToken);
+    };
+
+    // Policy mặc định: áp dụng cho tất cả endpoints
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        // Miễn rate limit cho upload endpoints và health check
+        var path = context.Request.Path.Value?.ToLower() ?? "";
+        if (path == "/api/upload-data" || path == "/api/upload-khuon" || path == "/healthz")
+        {
+            return RateLimitPartition.GetNoLimiter("exempt");
+        }
+
+        // Lấy IP thực (hỗ trợ reverse proxy)
+        var ip = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
+        if (ip.Contains(',')) ip = ip.Split(',')[0].Trim();
+
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromSeconds(10),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0,
+        });
     });
 });
 
@@ -131,6 +183,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
