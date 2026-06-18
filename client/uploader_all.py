@@ -294,7 +294,7 @@ def parse_loss_from_file(filepath, month, year):
 
         ws = wb["LOSS"]
         # Read all rows once into memory for performance
-        all_rows = list(ws.iter_rows(min_row=7, max_row=450, values_only=False))
+        all_rows = list(ws.iter_rows(min_row=7, max_row=800, values_only=False))
         wb.close()
 
         for day in range(1, 32):

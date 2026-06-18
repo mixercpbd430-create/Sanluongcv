@@ -1,10 +1,9 @@
 """
-Client Uploader — Gửi dữ liệu sản lượng, NVVH, LOSS lên server.
-Chạy trên mỗi PC (Mixer, Pellet Feedmill, Pellet Mini).
-Đọc file Excel local → parse dữ liệu → POST lên server.
+Client Uploader PL1-5 — Gửi dữ liệu sản lượng PL1~PL5, NVVH, LOSS lên server.
+Chỉ gửi dữ liệu của PL1, PL2, PL3, PL4, PL5 lên https://sanluongcv.onrender.com/
 
 Sử dụng:
-    python uploader.py
+    python uploader_pl12345.py
 """
 
 import os
@@ -18,7 +17,6 @@ from tkinter import filedialog, messagebox, ttk
 from datetime import datetime
 import threading
 
-# Try to import dependencies
 try:
     import pandas as pd
 except ImportError:
@@ -39,32 +37,29 @@ except ImportError:
 
 
 # ─── Config ────────────────────────────────────────────────
-# When running as PyInstaller EXE, __file__ points to a temp dir.
-# Use the directory of the actual EXE so config.json is persisted.
 if getattr(sys, 'frozen', False):
     _app_dir = os.path.dirname(sys.executable)
 else:
     _app_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Support --profile argument for per-user config files
 _profile = ""
 for i, arg in enumerate(sys.argv):
     if arg == "--profile" and i + 1 < len(sys.argv):
         _profile = sys.argv[i + 1]
 
 if _profile:
-    CONFIG_FILE = os.path.join(_app_dir, f"config_{_profile}.json")
+    CONFIG_FILE = os.path.join(_app_dir, f"config_pl12345_{_profile}.json")
 else:
-    CONFIG_FILE = os.path.join(_app_dir, "config.json")
+    CONFIG_FILE = os.path.join(_app_dir, "config_pl12345.json")
 
 DEFAULT_CONFIG = {
-    "server_url": "https://api.binhduongfeedmill.com",
+    "server_url": "https://sanluongcv.onrender.com",
     "username": "",
     "password": "",
     "folder": "",
 }
 
-# File type configurations (same as data_loader.py)
+# Only PL file type — no MIXER
 FILE_CONFIGS = {
     "PL": {
         "pattern": "PL*.xlsx",
@@ -74,20 +69,11 @@ FILE_CONFIGS = {
         "skiprows": 8,
         "category": "Pellet Mill",
     },
-    "MIXER": {
-        "pattern": "MIXER*.xls*",
-        "regex": r"(MIXER)\s+T(\d+)\.(\d+)\.(xlsx|xlsm)",
-        "sheet_name": "SAN LUONG",
-        "usecols": "B:F",
-        "skiprows": 7,
-        "category": "Mixer",
-        "extra_col": "AL",
-    },
 }
 
-# All file types and lines — any user can upload everything
-ALL_FILE_TYPES = ["PL", "MIXER"]
-ALL_LINES = ["MIXER", "PL1", "PL2", "PL3", "PL4", "PL5", "PL6", "PL7"]
+ALL_FILE_TYPES = ["PL"]
+# Only PL1 through PL5
+ALL_LINES = ["PL1", "PL2", "PL3", "PL4", "PL5"]
 
 
 # ─── Config Load/Save ─────────────────────────────────────
@@ -95,7 +81,6 @@ def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             cfg = json.load(f)
-            # Merge with defaults
             for k, v in DEFAULT_CONFIG.items():
                 if k not in cfg:
                     cfg[k] = v
@@ -120,6 +105,14 @@ def safe_float(val, default=0.0):
         return default
 
 
+def is_pl1_to_5(line_name):
+    """Check if line_name is PL1..PL5."""
+    m = re.match(r'^PL(\d+)$', line_name, re.IGNORECASE)
+    if m:
+        return 1 <= int(m.group(1)) <= 5
+    return False
+
+
 # ─── Excel Parser ──────────────────────────────────────────
 def parse_excel_file(filepath, config):
     """Parse a single Excel file. Returns list of day entries."""
@@ -129,6 +122,11 @@ def parse_excel_file(filepath, config):
         return None, None
 
     line_name = match.group(1).upper()
+
+    # *** Filter: only PL1-PL5 ***
+    if not is_pl1_to_5(line_name):
+        return None, None
+
     month = int(match.group(2))
     year = int(match.group(3))
 
@@ -163,25 +161,6 @@ def parse_excel_file(filepath, config):
             }
             entries.append(entry)
 
-        # Read extra column (cam_bot) for MIXER
-        extra_col = config.get("extra_col")
-        if extra_col:
-            try:
-                df_extra = pd.read_excel(
-                    filepath,
-                    sheet_name=config["sheet_name"],
-                    header=None,
-                    usecols=extra_col,
-                    skiprows=config["skiprows"],
-                    nrows=31,
-                )
-                for idx, row in df_extra.iterrows():
-                    if idx < len(entries):
-                        val = row.iloc[0]
-                        entries[idx]["cam_bot"] = round(safe_float(val), 2)
-            except Exception:
-                pass
-
         return f"{line_name} T{month}.{year}", entries
 
     except Exception as e:
@@ -190,40 +169,23 @@ def parse_excel_file(filepath, config):
 
 # ─── NVVH Parser ───────────────────────────────────────────
 def parse_nvvh_from_file(filepath, month, year):
-    """Parse NVVH (operator names) from PL or MIXER file.
-    PL files:    Row 49, columns AH(33), AL(37), AO(40) in day sheets 1-31.
-    MIXER files: Row 85, columns M(12), P(15), S(18) in day sheets 1-31.
-                 Format: "CA1:name1 name2", "CA2:name1 + name2", "CA 3:name"
-    Returns list of {year, month, day, ca, pl_group, names}.
-    """
+    """Parse NVVH (operator names) from PL1 file only (for pl1_5 group)."""
     filename = os.path.basename(filepath).upper()
-    # Determine pl_group
-    if 'MIXER' in filename:
-        pl_group = "mixer"
-    elif any(f"PL{i}" in filename for i in range(1, 6)):
-        pl_group = "pl1_5"
-    elif any(f"PL{i}" in filename for i in range(6, 8)):
-        pl_group = "pl6_7"
-    else:
+
+    # Only process PL1-PL5 files
+    if not any(f"PL{i}" in filename for i in range(1, 6)):
         return []
 
-    # Only read from PL1 (for pl1_5 group), PL6 (for pl6_7 group), or MIXER
-    if pl_group == "pl1_5" and "PL1 " not in filename and "PL1." not in filename:
-        return []
-    if pl_group == "pl6_7" and "PL6 " not in filename and "PL6." not in filename:
+    pl_group = "pl1_5"
+
+    # Only read NVVH from PL1
+    if "PL1 " not in filename and "PL1." not in filename:
         return []
 
-    # MIXER: Row 85, columns M(12), P(15), S(18) — 0-based indices
-    # PL:    Row 49, columns AH(33), AL(37), AO(40) — 0-based indices
-    if pl_group == "mixer":
-        nvvh_row = 85
-        ca_cols = {"ca1": 12, "ca2": 15, "ca3": 18}  # M=12, P=15, S=18
-    else:
-        nvvh_row = 49
-        ca_cols = {"ca1": 33, "ca2": 37, "ca3": 40}  # AH=33, AL=37, AO=40
+    nvvh_row = 49
+    ca_cols = {"ca1": 33, "ca2": 37, "ca3": 40}
 
     entries = []
-
     try:
         wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
         for day in range(1, 32):
@@ -237,16 +199,8 @@ def parse_nvvh_from_file(filepath, month, year):
                         raw = row[col_idx].value
                         if raw:
                             names_str = str(raw).strip()
-                            if pl_group == "mixer":
-                                # Strip "CA1:", "CA2:", "CA 3:" prefix
-                                names_str = re.sub(r'^CA\s*\d\s*[:：]\s*', '', names_str)
-                                # Split by + or space-separated pairs
-                                parts = re.split(r'[+]', names_str)
-                                names_str = ','.join(n.strip() for n in parts if n.strip())
-                            elif pl_group == "pl1_5":
-                                # Split names by + or -
-                                parts = re.split(r'[+\-]', names_str)
-                                names_str = ','.join(n.strip() for n in parts if n.strip())
+                            parts = re.split(r'[+\-]', names_str)
+                            names_str = ','.join(n.strip() for n in parts if n.strip())
                             entries.append({
                                 "year": year, "month": month,
                                 "day": day, "ca": ca_key,
@@ -261,18 +215,18 @@ def parse_nvvh_from_file(filepath, month, year):
 
 # ─── LOSS Parser ───────────────────────────────────────────
 def parse_loss_from_file(filepath, month, year):
-    """Parse LOSS sheet from a PL file.
-    Returns list of {year, month, day, pl_num, code, description, ca1_count, ...}.
-    """
+    """Parse LOSS sheet from a PL1-PL5 file."""
     filename = os.path.basename(filepath).upper()
-    # Extract PL number or detect MIXER
-    if 'MIXER' in filename:
-        pl_num = 0  # Mixer uses pl_num=0
-    else:
-        pl_match = re.search(r'PL(\d+)', filename)
-        if not pl_match:
-            return []
-        pl_num = int(pl_match.group(1))
+
+    # Only PL files
+    pl_match = re.search(r'PL(\d+)', filename)
+    if not pl_match:
+        return []
+    pl_num = int(pl_match.group(1))
+
+    # *** Filter: only PL1-PL5 ***
+    if pl_num < 1 or pl_num > 5:
+        return []
 
     entries = []
     try:
@@ -282,12 +236,11 @@ def parse_loss_from_file(filepath, month, year):
             return []
 
         ws = wb["LOSS"]
-        # Read all rows once into memory for performance
         all_rows = list(ws.iter_rows(min_row=7, max_row=800, values_only=False))
         wb.close()
 
         for day in range(1, 32):
-            start_col = 5 + (day - 1) * 6  # 1-indexed
+            start_col = 5 + (day - 1) * 6
             for row in all_rows:
                 code_cell = row[1] if len(row) > 1 else None
                 desc_cell = row[2] if len(row) > 2 else None
@@ -307,8 +260,8 @@ def parse_loss_from_file(filepath, month, year):
                         vals.append(0)
 
                 if any(v > 0 for v in vals):
-                    # MIXER time is already in minutes; PL time is in hours → convert to minutes
-                    time_mult = 1 if pl_num == 0 else 60
+                    # PL time is in hours → convert to minutes
+                    time_mult = 60
                     entries.append({
                         "year": year, "month": month,
                         "day": day, "pl_num": pl_num,
@@ -328,22 +281,16 @@ def parse_loss_from_file(filepath, month, year):
 
 # ─── Khuôn Parser ─────────────────────────────────────────
 def parse_khuon_from_file(filepath, pl_num, month, year):
-    """Parse SERI sheet from a PL file for khuon tracking data.
-    Returns list of {
-        pl_num, year, month, seri, thong_so,
-        days: {1: val, 2: val, ...},
-        tong_thang, ton_truoc, tong
-    }
-    """
-    # Column layout differs by PL:
-    #   PL2: seri=C(2), khuon=D(3), day1=E(4)
-    #   Others: seri=B(1), khuon=C(2), day1=D(3)
+    """Parse SERI sheet from a PL file for khuon tracking data."""
+    # *** Filter: only PL1-PL5 ***
+    if pl_num < 1 or pl_num > 5:
+        return []
+
     if pl_num == 2:
         seri_idx, khuon_idx, day1_idx = 2, 3, 4
     else:
         seri_idx, khuon_idx, day1_idx = 1, 2, 3
 
-    # Summary columns: day1 + 31, day1 + 32, day1 + 33
     tong_thang_idx = day1_idx + 31
     ton_truoc_idx = day1_idx + 32
     tong_idx = day1_idx + 33
@@ -364,7 +311,6 @@ def parse_khuon_from_file(filepath, pl_num, month, year):
 
             thong_so = row[khuon_idx] if len(row) > khuon_idx else ''
 
-            # Read daily values (day 1-31) — only non-zero to reduce payload
             days = {}
             for d in range(31):
                 col_idx = day1_idx + d
@@ -373,7 +319,6 @@ def parse_khuon_from_file(filepath, pl_num, month, year):
                 if v > 0:
                     days[d + 1] = v
 
-            # Summary columns
             tong_thang = row[tong_thang_idx] if len(row) > tong_thang_idx else 0
             ton_truoc = row[ton_truoc_idx] if len(row) > ton_truoc_idx else 0
             tong = row[tong_idx] if len(row) > tong_idx else 0
@@ -398,7 +343,7 @@ def parse_khuon_from_file(filepath, pl_num, month, year):
 
 
 def read_all_files(folder, username):
-    """Read all Excel files from folder.
+    """Read PL1-PL5 Excel files from folder.
     Returns: (production_entries, nvvh_entries, loss_entries, khuon_entries, file_results)
     """
     all_entries = []
@@ -421,43 +366,36 @@ def read_all_files(folder, username):
                 file_results.append(f"❌ {label}: {result}")
                 continue
 
-            # Accept all lines
             if result:
                 all_entries.extend(result)
                 total = sum(e["total"] for e in result)
                 file_results.append(f"✅ {label}: {len(result)} ngày, {total:,.1f} tấn")
 
-            # Parse NVVH + LOSS for PL and MIXER files
-            if type_key == "PL" or type_key == "MIXER":
-                fn = os.path.basename(filepath)
-                match = re.match(config["regex"], fn, re.IGNORECASE)
-                if match:
-                    month = int(match.group(2))
-                    year = int(match.group(3))
-                    # NVVH (from PL1, PL6, or MIXER)
-                    nvvh = parse_nvvh_from_file(filepath, month, year)
-                    if nvvh:
-                        nvvh_entries.extend(nvvh)
-                        file_results.append(f"   👤 NVVH: {len(nvvh)} records")
-                    # LOSS
-                    loss = parse_loss_from_file(filepath, month, year)
-                    if loss:
-                        loss_entries.extend(loss)
-                        file_results.append(f"   📋 LOSS: {len(loss)} records")
+            # Parse NVVH + LOSS
+            fn = os.path.basename(filepath)
+            match = re.match(config["regex"], fn, re.IGNORECASE)
+            if match:
+                month = int(match.group(2))
+                year = int(match.group(3))
+                nvvh = parse_nvvh_from_file(filepath, month, year)
+                if nvvh:
+                    nvvh_entries.extend(nvvh)
+                    file_results.append(f"   👤 NVVH: {len(nvvh)} records")
+                loss = parse_loss_from_file(filepath, month, year)
+                if loss:
+                    loss_entries.extend(loss)
+                    file_results.append(f"   📋 LOSS: {len(loss)} records")
 
-            # Parse KHUÔN from PL files only (SERI sheet)
-            if type_key == "PL":
-                fn = os.path.basename(filepath)
-                match = re.match(config["regex"], fn, re.IGNORECASE)
-                if match:
-                    line_name = match.group(1).upper()
-                    pl_num = int(re.search(r'\d+', line_name).group())
-                    month = int(match.group(2))
-                    year = int(match.group(3))
-                    khuon = parse_khuon_from_file(filepath, pl_num, month, year)
-                    if khuon:
-                        khuon_entries.extend(khuon)
-                        file_results.append(f"   🔩 KHUÔN: {len(khuon)} khuôn")
+            # Parse KHUÔN
+            if match:
+                line_name = match.group(1).upper()
+                pl_num = int(re.search(r'\d+', line_name).group())
+                month = int(match.group(2))
+                year = int(match.group(3))
+                khuon = parse_khuon_from_file(filepath, pl_num, month, year)
+                if khuon:
+                    khuon_entries.extend(khuon)
+                    file_results.append(f"   🔩 KHUÔN: {len(khuon)} khuôn")
 
     return all_entries, nvvh_entries, loss_entries, khuon_entries, file_results
 
@@ -479,7 +417,6 @@ def upload_data(server_url, username, password, entries, nvvh_entries=None, loss
     try:
         return resp.json()
     except (json.JSONDecodeError, ValueError):
-        # Server returned non-JSON (empty body, HTML error page, etc.)
         body_preview = resp.text[:200].strip() if resp.text else "(empty)"
         return {
             "status": "error",
@@ -514,7 +451,7 @@ class UploaderApp:
     def __init__(self):
         self.config = load_config()
         self.root = tk.Tk()
-        title = "📊 Cập Nhật Sản Lượng"
+        title = "📊 Cập Nhật Sản Lượng — PL1~PL5"
         if _profile:
             title += f" — {_profile.upper()}"
         self.root.title(title)
@@ -529,17 +466,14 @@ class UploaderApp:
         accent = "#6366f1"
         entry_bg = "#16213e"
 
-        # Title
-        tk.Label(self.root, text="📊 Cập Nhật Sản Lượng",
+        tk.Label(self.root, text="📊 Cập Nhật Sản Lượng PL1~PL5",
                  font=("Segoe UI", 16, "bold"), bg=bg, fg=fg).pack(pady=(15, 5))
-        tk.Label(self.root, text="Đọc Excel → Gửi lên Server",
+        tk.Label(self.root, text="Chỉ gửi PL1-PL5 → sanluongcv.onrender.com",
                  font=("Segoe UI", 9), bg=bg, fg="#94a3b8").pack()
 
-        # Form frame
         form = tk.Frame(self.root, bg=bg)
         form.pack(pady=15, padx=25, fill="x")
 
-        # Server URL
         tk.Label(form, text="Server URL:", font=("Segoe UI", 10),
                  bg=bg, fg=fg).grid(row=0, column=0, sticky="w", pady=4)
         self.server_var = tk.StringVar(value=self.config["server_url"])
@@ -547,7 +481,6 @@ class UploaderApp:
                  bg=entry_bg, fg=fg, insertbackground=fg, relief="flat",
                  width=35).grid(row=0, column=1, columnspan=2, pady=4, sticky="ew")
 
-        # Username
         tk.Label(form, text="Username:", font=("Segoe UI", 10),
                  bg=bg, fg=fg).grid(row=1, column=0, sticky="w", pady=4)
         self.user_var = tk.StringVar(value=self.config["username"])
@@ -555,7 +488,6 @@ class UploaderApp:
                  bg=entry_bg, fg=fg, insertbackground=fg, relief="flat",
                  width=35).grid(row=1, column=1, columnspan=2, pady=4, sticky="ew")
 
-        # Password
         tk.Label(form, text="Password:", font=("Segoe UI", 10),
                  bg=bg, fg=fg).grid(row=2, column=0, sticky="w", pady=4)
         self.pass_var = tk.StringVar(value=self.config.get("password", ""))
@@ -563,7 +495,6 @@ class UploaderApp:
                  show="•", bg=entry_bg, fg=fg, insertbackground=fg, relief="flat",
                  width=35).grid(row=2, column=1, columnspan=2, pady=4, sticky="ew")
 
-        # Folder
         tk.Label(form, text="Folder Excel:", font=("Segoe UI", 10),
                  bg=bg, fg=fg).grid(row=3, column=0, sticky="w", pady=4)
         self.folder_var = tk.StringVar(value=self.config["folder"])
@@ -576,15 +507,13 @@ class UploaderApp:
 
         form.columnconfigure(1, weight=1)
 
-        # Upload button
         self.btn_upload = tk.Button(
-            self.root, text="🚀  Gửi dữ liệu lên hệ thống",
+            self.root, text="🚀  Gửi PL1~PL5 lên hệ thống",
             font=("Segoe UI", 12, "bold"), bg=accent, fg="white",
             activebackground="#4f46e5", relief="flat", height=2,
             command=self._start_upload)
         self.btn_upload.pack(pady=10, padx=25, fill="x")
 
-        # Status text
         self.status_text = tk.Text(
             self.root, height=10, bg="#0f172a", fg="#94a3b8",
             font=("Consolas", 9), relief="flat", state="disabled",
@@ -592,7 +521,7 @@ class UploaderApp:
         self.status_text.pack(padx=25, pady=(0, 15), fill="both", expand=True)
 
     def _browse_folder(self):
-        folder = filedialog.askdirectory(title="Chọn folder chứa file Excel")
+        folder = filedialog.askdirectory(title="Chọn folder chứa file Excel PL1-PL5")
         if folder:
             self.folder_var.set(folder)
 
@@ -608,7 +537,6 @@ class UploaderApp:
         self.status_text.config(state="disabled")
 
     def _start_upload(self):
-        """Start upload in background thread."""
         self.btn_upload.config(state="disabled", text="⏳ Đang xử lý...")
         self._clear_log()
         threading.Thread(target=self._do_upload, daemon=True).start()
@@ -628,16 +556,15 @@ class UploaderApp:
                 self._log(f"❌ Folder không tồn tại: {folder}")
                 return
 
-            # Save config (including password for auto mode)
             self.config["server_url"] = server
             self.config["username"] = username
             self.config["password"] = password
             self.config["folder"] = folder
             save_config(self.config)
 
-            # Read Excel files
-            self._log(f"📂 Đang đọc file Excel từ: {folder}")
+            self._log(f"📂 Đang đọc file PL1~PL5 từ: {folder}")
             self._log(f"👤 User: {username}")
+            self._log(f"🌐 Server: {server}")
             self._log("")
 
             entries, nvvh_entries, loss_entries, khuon_entries, file_results = read_all_files(folder, username)
@@ -646,13 +573,12 @@ class UploaderApp:
                 self._log(msg)
 
             if not entries and not nvvh_entries and not loss_entries and not khuon_entries:
-                self._log("\n❌ Không tìm thấy dữ liệu phù hợp!")
+                self._log("\n❌ Không tìm thấy dữ liệu PL1~PL5 phù hợp!")
                 return
 
             self._log(f"\n📊 Tổng: {len(entries)} sản lượng, {len(nvvh_entries)} NVVH, {len(loss_entries)} LOSS, {len(khuon_entries)} KHUÔN")
             self._log(f"🚀 Đang gửi lên {server}...")
 
-            # Upload production + NVVH + LOSS
             if entries or nvvh_entries or loss_entries:
                 result = upload_data(server, username, password, entries, nvvh_entries, loss_entries)
 
@@ -673,7 +599,6 @@ class UploaderApp:
                     for err in result["errors"]:
                         self._log(f"   ⚠️ {err}")
 
-            # Upload khuon data separately
             if khuon_entries:
                 self._log(f"\n🔩 Đang gửi dữ liệu khuôn ({len(khuon_entries)} khuôn)...")
                 khuon_result = upload_khuon(server, username, password, khuon_entries)
@@ -694,7 +619,7 @@ class UploaderApp:
             self._log(f"\n❌ Lỗi: {str(e)}")
         finally:
             self.root.after(0, lambda: self.btn_upload.config(
-                state="normal", text="🚀  Gửi dữ liệu lên hệ thống"))
+                state="normal", text="🚀  Gửi PL1~PL5 lên hệ thống"))
 
     def run(self):
         self.root.mainloop()
